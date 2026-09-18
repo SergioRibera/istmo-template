@@ -1,0 +1,54 @@
+stages: [test{% if has_android %}, android{% endif %}{% if has_ios %}, ios{% endif %}{% if bundle_desktop %}, bundle{% endif %}{% if publish_github or publish_play or publish_appstore or publish_crates %}, release{% endif %}]
+
+default:
+  image: rust:1.85
+  cache:
+    key: cargo
+    paths: [target/, ~/.cargo/registry/]
+
+test:
+  stage: test
+  script:
+    - rustup component add rustfmt clippy
+    - cargo fmt --all --check
+    - cargo clippy --all-targets -- -D warnings
+    - cargo test --all-targets
+
+{% if has_android and is_app %}
+android:
+  stage: android
+  image: ghcr.io/cross-rs/aarch64-linux-android:latest
+  script:
+    - cargo build --release --target aarch64-linux-android -p {{project-name}}
+  artifacts:
+    paths: [target/aarch64-linux-android/release/lib{{crate_name}}.so]
+{% endif %}
+
+{% if has_ios and is_app %}
+ios:
+  stage: ios
+  tags: [macos]
+  script:
+    - rustup target add aarch64-apple-ios-sim
+    - brew install xcodegen
+    - cd ios && xcodegen generate
+    - xcodebuild -project {{project-name | pascal_case}}App.xcodeproj -scheme {{project-name | pascal_case}}App -destination 'generic/platform=iOS Simulator' build
+{% endif %}
+
+{% if bundle_desktop %}
+bundle:
+  stage: bundle
+  image: nixos/nix:latest
+  script:
+    - nix --experimental-features 'nix-command flakes' build .#bundle
+  artifacts:
+    paths: [result/]
+{% endif %}
+
+{% if publish_crates %}
+crates:
+  stage: release
+  rules: [{ if: '$CI_COMMIT_TAG =~ /^v.*/' }]
+  script:
+    - cargo publish --token $CARGO_REGISTRY_TOKEN
+{% endif %}

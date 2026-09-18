@@ -3,3 +3,31 @@ Cargo.lock
 *.swp
 *.swo
 .DS_Store
+
+# Android
+{% if has_android %}
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+app/android/local.properties
+app/android/**/*.iml
+{% endif %}
+
+# iOS
+{% if has_ios %}
+app/ios/*.xcodeproj/
+app/ios/build/
+app/ios/DerivedData/
+{% endif %}
+
+# Nix / result symlinks
+result
+result-*
+
+# generated codegen sources
+app/android/app/src/main/java/**/gen/
+app/ios/**/Generated/
+
+# JetBrains / VS Code
+.idea/
+.vscode/

@@ -1,0 +1,94 @@
+[template]
+cargo_generate_version = ">=0.21.0"
+ignore = [
+    ".git",
+    "TEMPLATE.md",
+]
+
+[hooks]
+pre  = ["scripts/pre.rhai"]
+post = ["scripts/post.rhai"]
+
+[placeholders.kind]
+type   = "string"
+prompt = "Project archetype"
+choices = ["app", "plugin"]
+default = "app"
+
+[placeholders.gh_username]
+type   = "string"
+prompt = "GitHub user / organization (repo URL + reverse-DNS prefix)"
+default = "acme"
+regex   = "^[a-zA-Z][a-zA-Z0-9_-]*$"
+
+[placeholders.author_name]
+type   = "string"
+prompt = "Author name"
+default = "You"
+
+[placeholders.author_email]
+type   = "string"
+prompt = "Author email"
+default = "you@example.com"
+
+[placeholders.description]
+type   = "string"
+prompt = "Short project description"
+default = "An istmo-powered project."
+
+[placeholders.bundle_id]
+type   = "string"
+prompt = "Bundle / application id (reverse DNS, e.g. com.acme.myapp)"
+default = "com.acme.myapp"
+regex   = "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+
+[placeholders.display_name]
+type   = "string"
+prompt = "Display name shown to the user"
+default = "My App"
+
+[placeholders.platforms]
+type   = "array"
+prompt = "Target platforms (space to toggle)"
+choices = ["android", "ios", "desktop"]
+default = ["android", "ios", "desktop"]
+
+[placeholders.plugins]
+type   = "array"
+prompt = "Initial plugins (app archetype only — ignored for plugin kind)"
+choices = ["app_lifecycle", "deep_links", "safe_area", "google_sign_in", "data_store"]
+default = []
+
+[placeholders.crate_license]
+type    = "string"
+prompt  = "License"
+choices = ["MIT", "Apache-2.0", "MIT OR Apache-2.0", "GPL-3.0-or-later", "Unlicense"]
+default = "MIT OR Apache-2.0"
+
+[placeholders.publish_targets]
+type   = "array"
+prompt = "Publish / release targets"
+choices = ["github_release", "play_store", "app_store", "crates_io"]
+default = ["github_release"]
+
+[placeholders.ci]
+type   = "array"
+prompt = "CI providers to configure"
+choices = ["github", "gitlab"]
+default = ["github"]
+
+[placeholders.use_nix_bundle]
+type   = "bool"
+prompt = "Use nix-bundle-app for desktop packaging? (only relevant if 'desktop' is a target and kind = app)"
+default = true
+
+[placeholders.istmo_version]
+type   = "string"
+prompt = "istmo crate version (from crates.io)"
+default = "0.1"
+
+[placeholders.ui_framework]
+type    = "string"
+prompt  = "Preferred UI framework for the desktop/mobile shell (app archetype only)"
+choices = ["egui", "freya", "slint", "dioxus", "none"]
+default = "egui"

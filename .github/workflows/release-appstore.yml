@@ -1,0 +1,60 @@
+name: release-appstore
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  testflight:
+    name: TestFlight upload
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: 'aarch64-apple-ios' }
+      - uses: Swatinem/rust-cache@v2
+
+      - name: install xcodegen
+        run: brew install xcodegen
+
+      - name: import signing cert
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{"{{"}} secrets.APPLE_CERT_P12_B64 {{"}}"}}
+          p12-password:    ${{"{{"}} secrets.APPLE_CERT_PASSWORD {{"}}"}}
+
+      - name: install provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v3
+        with:
+          bundle-id:    {{bundle_id}}
+          issuer-id:    ${{"{{"}} secrets.APPSTORE_ISSUER_ID {{"}}"}}
+          api-key-id:   ${{"{{"}} secrets.APPSTORE_KEY_ID {{"}}"}}
+          api-private-key: ${{"{{"}} secrets.APPSTORE_PRIVATE_KEY {{"}}"}}
+
+      - name: generate xcodeproj
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: archive + export ipa
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project {{project-name | pascal_case}}App.xcodeproj \
+            -scheme  {{project-name | pascal_case}}App \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -archivePath build/{{project-name | pascal_case}}App.xcarchive archive
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/{{project-name | pascal_case}}App.xcarchive \
+            -exportPath  build/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path:      ios/build/ipa/{{project-name | pascal_case}}App.ipa
+          issuer-id:     ${{"{{"}} secrets.APPSTORE_ISSUER_ID {{"}}"}}
+          api-key-id:    ${{"{{"}} secrets.APPSTORE_KEY_ID {{"}}"}}
+          api-private-key: ${{"{{"}} secrets.APPSTORE_PRIVATE_KEY {{"}}"}}

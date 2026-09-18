@@ -1,0 +1,30 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+{% if publish_github %}
+  github-release:
+    name: publish GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      {% if bundle_desktop %}
+      - uses: cachix/install-nix-action@v27
+      - run: nix build .#bundle
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: result/*
+      {% else %}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/{{project-name}}*
+      {% endif %}
+{% endif %}

@@ -1,0 +1,49 @@
+[package]
+name    = "istmo-{{project-name}}"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "{{crate_license}}"
+authors = ["{{author_name}} <{{author_email}}>"]
+description = "{{description}}"
+repository = "https://github.com/{{gh_username}}/{{project-name}}"
+homepage   = "https://github.com/{{gh_username}}/{{project-name}}"
+readme = "README.md"
+keywords = ["istmo", "mobile", "plugin"]
+categories = ["api-bindings"]
+links = "istmo_{{crate_name}}"
+
+[features]
+default = []
+# Enables the `codegen` module — downstream `build.rs` scripts can then
+# call `istmo_{{crate_name}}::codegen::contract()` to get the `Contract`
+# without going through the `DEP_*_ISTMO_CONTRACT` env handover.
+codegen = ["dep:istmo-build"]
+
+[dependencies]
+istmo       = "{{istmo_version}}"
+bincode     = { version = "2", default-features = false, features = ["derive", "std"] }
+pollster    = "0.4"
+istmo-build = { version = "{{istmo_version}}", optional = true }
+
+[build-dependencies]
+istmo-build = "{{istmo_version}}"
+
+[dev-dependencies]
+flume    = { version = "0.11", features = ["async"] }
+pollster = "0.4"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery  = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+[package.metadata.docs.rs]
+all-features = true

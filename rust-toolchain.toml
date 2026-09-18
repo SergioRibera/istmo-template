@@ -1,0 +1,11 @@
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+targets = [
+{% if has_android %}    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "x86_64-linux-android",
+{% endif %}{% if has_ios %}    "aarch64-apple-ios",
+    "aarch64-apple-ios-sim",
+    "x86_64-apple-ios",
+{% endif %}]

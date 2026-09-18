@@ -1,0 +1,15 @@
+[plugin]
+id          = "{{gh_username}}.{{crate_name}}"
+client_type = "::istmo_{{crate_name}}::{{crate_name | pascal_case}}Client"
+
+# Native platform dependencies. Uncomment / edit the sections your
+# plugin needs. `istmo-build` parses this file at plugin build time
+# and forwards the entries to every downstream app via `DEP_*_NATIVE_DEPS`.
+
+# [[gradle]]
+# coordinate = "com.google.android.gms:play-services-auth:21.0.0"
+
+# [[swift_package]]
+# name    = "GoogleSignInSwift"
+# url     = "https://github.com/google/GoogleSignIn-iOS"
+# version = "8.0.0"
