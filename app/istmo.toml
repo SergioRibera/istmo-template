@@ -16,15 +16,17 @@
 # android_package = "{{bundle_id}}.gen"
 # ios             = true
 # ios_app_dir     = "{{project-name | pascal_case}}App"
+# auto_register   = true             # false → skip generating IstmoPluginRegistry
 
 # Per-plugin role / platform overrides. Default role is `host` (Rust calls
 # the plugin, native side implements the backend). Set `role = "client"` for
 # Rust-hosted plugins the native side needs to call.
 #
 # [[app.plugin]]
-# id        = "istmo.echo"
-# role      = "client"
-# platforms = ["android"]
+# id            = "istmo.echo"
+# role          = "client"
+# platforms     = ["android"]
+# auto_register = false                # opt-out this plugin from the registry
 
 # Force a specific plugin to run in the `:remote` process instead of its
 # default deployment. Match the plugin's declared `id` from its own
