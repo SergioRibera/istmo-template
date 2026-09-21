@@ -3,6 +3,25 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        // `dev.istmo.plugin-loader` is published to GitHub Packages
+        // alongside `dev.istmo:istmo-runtime`. Uses the same creds
+        // as the dependency repo declared below.
+        maven {
+            url = uri("https://maven.pkg.github.com/SergioRibera/istmo")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                    ?: providers.gradleProperty("gpr.user").orNull
+                password = System.getenv("GITHUB_TOKEN")
+                    ?: providers.gradleProperty("gpr.key").orNull
+            }
+        }
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "dev.istmo.plugin-loader") {
+                useModule("dev.istmo:istmo-plugin-loader:${requested.version}")
+            }
+        }
     }
 }
 

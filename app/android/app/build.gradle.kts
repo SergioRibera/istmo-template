@@ -3,6 +3,10 @@ import org.gradle.api.tasks.Exec
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // Auto-discovers every istmo plugin's `native/android/` directory
+    // from the enclosing Cargo workspace and injects it into the
+    // module's Kotlin source set — no manual `srcDirs` list.
+    id("dev.istmo.plugin-loader") version "{{istmo_version}}.0"
 }
 
 android {
@@ -59,16 +63,6 @@ android {
 android.sourceSets["main"].jniLibs.setSrcDirs(
     listOf(layout.buildDirectory.dir("rustJniLibs").get().asFile),
 )
-
-// istmo plugins ship their reference Kotlin backends inside their crate
-// under `native/android/`. Point Gradle at each plugin's directory so its
-// files compile in place — no copies, no repackaging. Uncomment and add
-// one line per plugin the app enables.
-//
-// val workspaceRoot: File = project.rootDir.resolve("../../..").normalize()
-// android.sourceSets["main"].kotlin.srcDirs(
-//     workspaceRoot.resolve("plugins/istmo-pen/native/android"),
-// )
 
 val abiToRustTarget = mapOf(
     "arm64-v8a"    to "aarch64-linux-android",
