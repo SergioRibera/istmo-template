@@ -1,13 +1,13 @@
 # {{project-name}}
 
 {{description}}
-
 {% if is_app %}
-Multi-platform application built on [istmo](https://crates.io/crates/istmo).
+Multi-platform application built on [istmo](https://crates.io/crates/istmo):
+one Rust crate drives {% if has_android %}Android {% endif %}{% if has_ios %}iOS {% endif %}{% if has_desktop %}desktop{% endif %}.
 {% else %}
-[istmo](https://crates.io/crates/istmo) plugin crate.
+[istmo](https://crates.io/crates/istmo) plugin crate: an async Rust trait
+(`src/lib.rs`) backed by native code (`native/`).
 {% endif %}
-
 Author: {{author_name}} <{{author_email}}>
 License: {{crate_license}}
 
@@ -16,41 +16,85 @@ License: {{crate_license}}
 - Archetype: `{{kind}}`
 - Platforms: {% if has_android %}android {% endif %}{% if has_ios %}ios {% endif %}{% if has_desktop %}desktop{% endif %}
 - CI: {% if ci_github %}github-actions {% endif %}{% if ci_gitlab %}gitlab-ci{% endif %}
-{% if is_app %}
-- Bundled plugins: {% if plugin_app_lifecycle %}AppLifecycle {% endif %}{% if plugin_deep_links %}DeepLinks {% endif %}{% if plugin_safe_area %}SafeAreaPublisher {% endif %}{% if plugin_google_sign_in %}google-sign-in {% endif %}{% if plugin_data_store %}data-store{% endif %}
-- UI framework hint: `{{ui_framework}}` (see comments in `src/app.rs`)
+{%- if is_app %}
+- Plugins: {% if plugin_app_lifecycle %}AppLifecycle {% endif %}{% if plugin_deep_links %}DeepLinks {% endif %}{% if plugin_safe_area %}SafeArea {% endif %}{% if plugin_google_sign_in %}istmo-google-sign-in {% endif %}{% if plugin_data_store %}istmo-data-store{% endif %}
+- UI framework: `{{ui_framework}}` (see `src/app.rs`)
 - Desktop packaging: {% if bundle_desktop %}nix-bundle-app (`nix build .#bundle`){% else %}not configured{% endif %}
-{% endif %}
+{%- endif %}
 - Publish targets: {% if publish_github %}github-release {% endif %}{% if publish_play %}play-store {% endif %}{% if publish_appstore %}app-store {% endif %}{% if publish_crates %}crates.io{% endif %}
 
+Requires Rust 1.89 or newer.
+{% if is_app %}
 ## Quickstart
 
 ```sh
-just build          # cargo build for the current host
-{% if has_android %}just build-android  # cargo build for aarch64-linux-android + Gradle assemble
-{% endif %}{% if has_ios %}just build-ios      # cargo build for aarch64-apple-ios + xcodegen + xcodebuild
-{% endif %}{% if bundle_desktop %}just bundle-desktop # nix build .#bundle (deb/rpm/appimage/dmg/msi via nix-bundle-app)
+cargo build         # also runs build.rs: Kotlin / Swift glue, istmo doctor
+{% if has_desktop %}just run            # desktop shell
+{% endif %}{% if has_android %}just build-android  # debug APK (Gradle runs cargo for every ABI)
+{% endif %}{% if has_ios %}just build-ios      # xcodegen + simulator build (Xcode runs cargo)
+{% endif %}{% if bundle_desktop %}just bundle-desktop # deb/rpm/appimage/dmg/msi via nix-bundle-app
 {% endif %}```
 
-## Wiring notes
+## How it fits together
 
-{% if is_app %}
-See `src/lib.rs` for the `istmo::runtime!` macro invocation and the commented
-placeholder where extra plugin clients get registered. `src/app.rs` is the
-shared UI shell — replace the `{{ui_framework}}` scaffold if you picked a
-different toolkit.
+- `istmo.toml` is the single source of truth for the app id, name,
+  version, icon and minimum OS versions.
+- `build.rs` (`istmo_build::emit()`) runs on every cargo build. It reads
+  `istmo.toml` and the manifest of every istmo plugin crate the app
+  depends on, and generates the native glue: dispatchers, codecs and an
+  `IstmoPluginRegistry` that registers every plugin backend. Warnings
+  prefixed `istmo doctor:` point at setup mistakes.
+- `src/lib.rs` declares the runtime (`istmo::runtime!`) and the
+  `#[istmo::mobile_app]` entry point. Plugin crates are wired
+  automatically; built-in `istmo::plugins` clients are listed there.
+- `src/app.rs` holds the shared app state and UI.
+{%- if has_desktop %}
+- `src/main.rs` + `src/desktop.rs` run the same app on a mock runtime;
+  plugins with a desktop backend run in-process, calls to the others fail
+  with a log line until you emulate them.
+{%- endif %}
+{%- if has_android %}
+- `android/` is a plain Gradle project. The `io.github.sergioribera.istmo`
+  plugin builds the crate for every ABI, links the plugins' Kotlin sources,
+  manifests and dependencies, and applies `[app]`. The launcher activity is
+  `dev.istmo.runtime.IstmoGameActivity`; subclass it to add Kotlin code.
+  The repo ships no Gradle wrapper: run `gradle wrapper` once in
+  `android/`, and `./gradlew istmoDoctor` to check the toolchain.
+{%- endif %}
+{%- if has_ios %}
+- `ios/` is an xcodegen project. Run one `cargo build` (or `cargo check`)
+  before `xcodegen generate`: it writes `ios/{{project-name | pascal_case}}App/istmo-plugins.yml`
+  (plugin sources, app identity, link settings, the cargo pre-build phase)
+  and `ios/.istmo/`. `main.swift` is `IstmoApp.run()`.
+{%- endif %}
+
+Adding a plugin crate is a `cargo add istmo-<plugin>`: the next build
+wires its client in Rust and registers its native backend.
 {% else %}
-See `src/lib.rs` for the plugin trait, config, and error types. The reference
-native implementations live under `native/{android,ios}/` and are shipped in the
-crate's published artifact via `include_str!`.
-{% endif %}
+## Layout
 
+- `src/lib.rs` — the `#[istmo::plugin]` trait, its config and error types.
+  The macro emits `{{crate_name | pascal_case}}Client` (Rust callers) and
+  `{{crate_name | pascal_case}}Host` (a Rust implementation, e.g. for
+  desktop).
+- `istmo.toml` — plugin id, client type, native backends and native
+  dependencies. `build.rs` (`istmo_build::emit()`) hands it, plus the
+  contract extracted from `src/lib.rs`, to every app that depends on this
+  crate.
+- `native/android/`, `native/ios/` — reference backends. Apps compile them
+  in and register them through their generated `IstmoPluginRegistry`.
+- `tests/smoke.rs` — the client against an in-memory Rust host.
+
+```sh
+just test
+just lint
+```
+{% endif %}
 ## Continuous integration
-
 {% if ci_github %}
-`.github/workflows/ci.yml` runs `cargo test`, `cargo fmt --check`, `cargo clippy`
-on every push. `release.yml` fires on tags matching `v*`.
-{% endif %}
-{% if ci_gitlab %}
-`.gitlab-ci.yml` mirrors the GitHub matrix.
+`.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy` and
+`cargo test`, plus an MSRV check{% if is_app and has_android %}, an Android APK build{% endif %}{% if is_app and has_ios %}, an iOS simulator build{% endif %}. Release
+workflows fire on `v*` tags.
+{% endif %}{% if ci_gitlab %}
+`.gitlab-ci.yml` mirrors the GitHub pipeline.
 {% endif %}

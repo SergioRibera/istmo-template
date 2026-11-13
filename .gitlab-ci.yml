@@ -1,7 +1,7 @@
-stages: [test{% if has_android %}, android{% endif %}{% if has_ios %}, ios{% endif %}{% if bundle_desktop %}, bundle{% endif %}{% if publish_github or publish_play or publish_appstore or publish_crates %}, release{% endif %}]
+stages: [test{% if has_android and is_app %}, android{% endif %}{% if has_ios and is_app %}, ios{% endif %}{% if bundle_desktop %}, bundle{% endif %}{% if publish_crates %}, release{% endif %}]
 
 default:
-  image: rust:1.85
+  image: rust:1.89  # MSRV
   cache:
     key: cargo
     paths: [target/, ~/.cargo/registry/]
@@ -11,15 +11,17 @@ test:
   script:
     - rustup component add rustfmt clippy
     - cargo fmt --all --check
-    - cargo clippy --all-targets -- -D warnings
-    - cargo test --all-targets
+    - cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
+    - cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
 
 {% if has_android and is_app %}
 android:
   stage: android
   image: ghcr.io/cross-rs/aarch64-linux-android:latest
   script:
-    - cargo build --release --target aarch64-linux-android -p {{project-name}}
+    # The APK itself is assembled by Gradle (`io.github.sergioribera.istmo`);
+    # this job only proves the library cross-compiles.
+    - cargo build --release --lib --target aarch64-linux-android
   artifacts:
     paths: [target/aarch64-linux-android/release/lib{{crate_name}}.so]
 {% endif %}
@@ -31,6 +33,7 @@ ios:
   script:
     - rustup target add aarch64-apple-ios-sim
     - brew install xcodegen
+    - cargo check  # writes the xcodegen fragment and ios/.istmo/
     - cd ios && xcodegen generate
     - xcodebuild -project {{project-name | pascal_case}}App.xcodeproj -scheme {{project-name | pascal_case}}App -destination 'generic/platform=iOS Simulator' build
 {% endif %}

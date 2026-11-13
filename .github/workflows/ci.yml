@@ -6,8 +6,11 @@ on:
   pull_request:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{"{{"}} github.ref {{"}}"}}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -24,9 +27,17 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --all-targets
+      - run: cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
+      - run: cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
 
+  msrv:
+    name: cargo check (MSRV 1.89)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --all-targets
 {% if has_android and is_app %}
   android:
     name: android build
@@ -36,32 +47,37 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.3.11579264'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.7' }
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: 'aarch64-linux-android' }
+        with: { targets: 'aarch64-linux-android,x86_64-linux-android' }
       - uses: Swatinem/rust-cache@v2
+      # The Gradle plugin builds the Rust crate for every ABI.
       - name: assemble debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
         env:
-          GITHUB_ACTOR: ${{"{{"}} github.actor {{"}}"}}
-          GITHUB_TOKEN: ${{"{{"}} secrets.GITHUB_TOKEN {{"}}"}}
+          ANDROID_NDK_HOME: ${{"{{"}} env.ANDROID_SDK_ROOT {{"}}"}}/ndk/26.3.11579264
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-{% endif %}
-
-{% if has_ios and is_app %}
+{% endif %}{% if has_ios and is_app %}
   ios:
     name: ios build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: 'aarch64-apple-ios-sim' }
+        with: { targets: 'aarch64-apple-ios-sim,x86_64-apple-ios' }
       - uses: Swatinem/rust-cache@v2
       - name: install xcodegen
         run: brew install xcodegen
+      # build.rs writes the xcodegen fragment and ios/.istmo/.
+      - name: generate istmo files
+        run: cargo check
       - name: generate xcodeproj
         working-directory: ios
         run: xcodegen generate
@@ -74,9 +90,7 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -configuration Debug \
             build
-{% endif %}
-
-{% if has_desktop and bundle_desktop %}
+{% endif %}{% if has_desktop and bundle_desktop and is_app %}
   nix-bundle:
     name: nix bundle desktop
     runs-on: ubuntu-latest

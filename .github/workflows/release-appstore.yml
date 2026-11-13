@@ -32,10 +32,16 @@ jobs:
           api-key-id:   ${{"{{"}} secrets.APPSTORE_KEY_ID {{"}}"}}
           api-private-key: ${{"{{"}} secrets.APPSTORE_PRIVATE_KEY {{"}}"}}
 
+      # build.rs writes the xcodegen fragment and ios/.istmo/.
+      - name: generate istmo files
+        run: cargo check
+
       - name: generate xcodeproj
         working-directory: ios
         run: xcodegen generate
 
+      # ExportOptions.plist (method app-store, team id) is yours to add
+      # under ios/.
       - name: archive + export ipa
         working-directory: ios
         run: |

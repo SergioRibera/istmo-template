@@ -43,6 +43,10 @@ if is_plugin {
     if !has_ios     { rm("plugin/native/ios"); }
 }
 
+if is_plugin {
+    rm(".github/workflows/release-play.yml");
+    rm(".github/workflows/release-appstore.yml");
+}
 if !ci_github { rm(".github"); }
 if !ci_gitlab { rm(".gitlab-ci.yml"); }
 

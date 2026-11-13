@@ -1,41 +1,43 @@
 set shell := ["bash", "-cu"]
 
-# Desktop build (host toolchain).
+# Host build. Also runs build.rs, which regenerates the Kotlin / Swift glue.
 build:
     cargo build --release
 
 test:
-    cargo test --all-targets
+    cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
 
 fmt:
     cargo fmt --all
-    cargo clippy --all-targets -- -D warnings
 
-{% if has_android %}
-# Android — assemble debug APK via Gradle, which drives cargo for every ABI.
+lint:
+    cargo fmt --all --check
+    cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
+{% if is_app %}{% if has_android %}
+# Android debug APK. The `io.github.sergioribera.istmo` Gradle plugin runs
+# cargo for every ABI; `./gradlew istmoDoctor` checks the toolchain.
 build-android:
     cd android && ./gradlew assembleDebug
 
-# Play Store internal release bundle. Requires ANDROID_RELEASE_* env.
+# Play Store release bundle. Requires the ANDROID_RELEASE_* env vars.
 release-android:
     cd android && ./gradlew bundleRelease
-{% endif %}
-
-{% if has_ios %}
-# iOS — regenerate the .xcodeproj (idempotent) and build for the simulator.
+{% endif %}{% if has_ios %}
+# iOS simulator build. `cargo check` writes the xcodegen fragment
+# (`istmo-plugins.yml`) before the project is generated; Xcode's pre-build
+# phase (`ios/.istmo/build-rust.sh`) then builds the Rust library.
 build-ios:
+    cargo check
     cd ios && xcodegen generate && \
         xcodebuild -project {{project-name | pascal_case}}App.xcodeproj \
                    -scheme  {{project-name | pascal_case}}App \
                    -destination 'generic/platform=iOS Simulator' build
-{% endif %}
-
-{% if bundle_desktop %}
+{% endif %}{% if bundle_desktop %}
 # Desktop distribution bundles via nix-bundle-app.
 bundle-desktop:
     nix build .#bundle
-{% endif %}
-
-# Run the desktop shell (uses the mock runtime + emulator thread).
+{% endif %}{% if has_desktop %}
+# Run the desktop shell (mock runtime + Rust hosts / emulator thread).
 run:
     cargo run
+{% endif %}{% endif %}

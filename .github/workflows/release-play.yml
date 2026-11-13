@@ -14,8 +14,12 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.3.11579264'
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.7' }
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: 'aarch64-linux-android' }
+        with: { targets: 'aarch64-linux-android,x86_64-linux-android' }
       - uses: Swatinem/rust-cache@v2
 
       - name: decode release keystore
@@ -25,13 +29,12 @@ jobs:
 
       - name: assemble release bundle (.aab)
         working-directory: android
-        run: ./gradlew bundleRelease
+        run: gradle bundleRelease
         env:
           ANDROID_RELEASE_STORE_PASSWORD: ${{"{{"}} secrets.ANDROID_STORE_PASSWORD {{"}}"}}
           ANDROID_RELEASE_KEY_ALIAS:      ${{"{{"}} secrets.ANDROID_KEY_ALIAS {{"}}"}}
           ANDROID_RELEASE_KEY_PASSWORD:   ${{"{{"}} secrets.ANDROID_KEY_PASSWORD {{"}}"}}
-          GITHUB_ACTOR: ${{"{{"}} github.actor {{"}}"}}
-          GITHUB_TOKEN: ${{"{{"}} secrets.GITHUB_TOKEN {{"}}"}}
+          ANDROID_NDK_HOME: ${{"{{"}} env.ANDROID_SDK_ROOT {{"}}"}}/ndk/26.3.11579264
 
       - name: upload to Play Store (internal)
         uses: r0adkll/upload-google-play@v1
