@@ -27,8 +27,8 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
-      - run: cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
-      - run: cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --all-targets
 
   msrv:
     name: cargo check (MSRV 1.89)

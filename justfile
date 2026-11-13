@@ -5,14 +5,14 @@ build:
     cargo build --release
 
 test:
-    cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
+    cargo test --all-targets
 
 fmt:
     cargo fmt --all
 
 lint:
     cargo fmt --all --check
-    cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
+    cargo clippy --all-targets -- -D warnings
 {% if is_app %}{% if has_android %}
 # Android debug APK. The `io.github.sergioribera.istmo` Gradle plugin runs
 # cargo for every ABI; `./gradlew istmoDoctor` checks the toolchain.

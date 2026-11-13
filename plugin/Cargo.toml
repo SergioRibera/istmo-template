@@ -17,20 +17,12 @@ categories = ["api-bindings"]
 # declares `links`.
 links = "istmo_{{crate_name}}"
 
-[features]
-default = []
-# Enables the `codegen` module — downstream `build.rs` scripts can then
-# call `istmo_{{crate_name}}::codegen::contract()` to get the `Contract`
-# without going through the `DEP_*_ISTMO_CONTRACT` env handover.
-codegen = ["dep:istmo-build"]
-
 [dependencies]
 # `istmo-core` + `istmo-macros` instead of the `istmo` facade: the facade
 # picks the Android activity flavour, which is the app's choice.
 istmo-core   = "{{istmo_version}}"
 istmo-macros = "{{istmo_version}}"
 wincode      = { version = "0.6", default-features = false, features = ["derive", "std"] }
-istmo-build  = { version = "{{istmo_version}}", optional = true }
 
 [build-dependencies]
 istmo-build = "{{istmo_version}}"
@@ -54,6 +46,3 @@ missing_panics_doc = "allow"
 # Plugin traits are async; sync backends implement them with `async fn`
 # rather than hand-built `std::future::ready` futures.
 unused_async_trait_impl = "allow"
-
-[package.metadata.docs.rs]
-all-features = true

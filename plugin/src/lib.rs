@@ -5,14 +5,8 @@
 //! implements it. Reference native implementations ship alongside this
 //! crate under
 //! [`native/`](https://github.com/{{gh_username}}/{{project-name}}/tree/main/native).
-//!
-//! Enable the `codegen` feature to expose the plugin's `Contract` for
-//! downstream code generation without the build-script handover.
 
 #![doc(html_root_url = "https://docs.rs/istmo-{{project-name}}")]
-
-#[cfg(feature = "codegen")]
-pub mod codegen;
 
 use istmo_macros::{message, plugin};
 

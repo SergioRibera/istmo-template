@@ -11,8 +11,8 @@ test:
   script:
     - rustup component add rustfmt clippy
     - cargo fmt --all --check
-    - cargo clippy --all-targets{% if is_plugin %} --all-features{% endif %} -- -D warnings
-    - cargo test --all-targets{% if is_plugin %} --all-features{% endif %}
+    - cargo clippy --all-targets -- -D warnings
+    - cargo test --all-targets
 
 {% if has_android and is_app %}
 android:
