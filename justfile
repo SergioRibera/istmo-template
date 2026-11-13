@@ -37,7 +37,7 @@ build-ios:
 bundle-desktop:
     nix build .#bundle
 {% endif %}{% if has_desktop %}
-# Run the desktop shell (mock runtime + Rust hosts / emulator thread).
+# Run the desktop shell (in-process runtime + Rust hosts / emulator thread).
 run:
     cargo run
 {% endif %}{% endif %}

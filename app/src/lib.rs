@@ -2,7 +2,7 @@
 //!
 //! One crate, three shells:
 //!
-//! - Desktop binary — `src/main.rs`, against a mock runtime.
+//! - Desktop binary — `src/main.rs`, on an in-process runtime (`src/desktop.rs`).
 //! - Android `cdylib`, loaded by `IstmoGameActivity` — `mobile_main` below.
 //! - iOS `staticlib`, linked into the Xcode app — same `mobile_main`.
 

@@ -4,14 +4,17 @@
 
 use std::sync::Arc;
 
-use istmo::{Envelope, Frame, Runtime, RuntimeInit};
+use istmo::{Envelope, Frame, IstmoError, Runtime, RuntimeConfig, RuntimeInit};
 {% if plugin_data_store %}use istmo_data_store::{DataStoreHost, DesktopDataStoreFactory};
 {% endif %}
 /// Start the desktop runtime: register the Rust hosts and answer every
 /// other outbound call on a background thread.
-#[must_use]
-pub fn start() -> Arc<Runtime> {
-    let RuntimeInit { runtime, outbound } = Runtime::mock();
+///
+/// The runtime is installed process-wide, as on mobile, so
+/// `Runtime::global()` and the clients' `acquire()` constructors work the
+/// same in every shell.
+pub fn start() -> Result<Arc<Runtime>, IstmoError> {
+    let RuntimeInit { runtime, outbound } = Runtime::init(RuntimeConfig::inline())?;
 {% if plugin_data_store %}
     // Local hosts answer in-process; their calls never reach `outbound`.
     runtime.register_host(DataStoreHost::new(DesktopDataStoreFactory));
@@ -27,7 +30,7 @@ pub fn start() -> Arc<Runtime> {
     if let Err(err) = spawned {
         log::error!("cannot start the desktop emulator: {err}");
     }
-    runtime
+    Ok(runtime)
 }
 
 /// Answer a frame meant for a native backend that does not exist on

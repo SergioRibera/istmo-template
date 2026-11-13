@@ -8,23 +8,33 @@
     target_os = "watchos",
     target_os = "visionos",
 )))]
-fn main() {% if ui_framework == "egui" %}-> Result<(), eframe::Error> {% endif %}{
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     use {{crate_name}}::{app::App, desktop};
 
-    let runtime = desktop::start();
+    let runtime = desktop::start()?;
 {% if ui_framework == "egui" %}
+    let mut viewport = eframe::egui::ViewportBuilder::default().with_inner_size([960.0, 640.0]);
+    // `[app.icon]` in istmo.toml (`desktop`, else `image`); `None` without one.
+    if let Some(png) = istmo::app_icon!() {
+        match eframe::icon_data::from_png_bytes(png) {
+            Ok(icon) => viewport = viewport.with_icon(icon),
+            Err(err) => log::warn!("app icon is not a valid PNG: {err}"),
+        }
+    }
     let options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default().with_inner_size([960.0, 640.0]),
+        viewport,
         ..eframe::NativeOptions::default()
     };
     eframe::run_native(
         "{{display_name}}",
         options,
         Box::new(move |_cc| Ok(Box::new(App::new(runtime)))),
-    )
+    )?;
 {% else %}
+    // `istmo::app_icon!()` holds the `[app.icon]` PNG for the window icon.
     App::new(runtime).run_desktop();
-{% endif %}}
+{% endif %}    Ok(())
+}
 
 #[cfg(any(
     target_os = "android",
