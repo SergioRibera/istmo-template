@@ -1,21 +1,31 @@
-//! Shared UI shell — same code drives desktop and mobile.
+//! Shared UI shell — the same code drives desktop and mobile.
 //!
-//! Replace the {{ui_framework}} scaffold below if you picked a different
-//! framework at `cargo generate` time. The Rust side is framework-agnostic:
-//! the runtime `Arc` + plugin clients live in an app-owned struct, the UI
-//! only draws from them.
+//! [`App`] owns the runtime handle, and later your plugin clients
+//! (`DataStoreClient::from_runtime_with(&runtime, config)`, …); the UI only
+//! reads from it.
 
+use std::sync::Arc;
 {% if ui_framework == "egui" %}
 use eframe::egui;
+use istmo::Runtime;
 
+/// Application state shared by every shell.
+#[derive(Debug)]
 pub struct App {
-    // TODO: hold `Arc<Runtime>` + your plugin client(s) + transient UI state.
-    counter: u32,
+    runtime: Arc<Runtime>,
+    clicks: u32,
 }
 
 impl App {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Self { counter: 0 }
+    #[must_use]
+    pub const fn new(runtime: Arc<Runtime>) -> Self {
+        Self { runtime, clicks: 0 }
+    }
+
+    /// Runtime the plugin clients are acquired from.
+    #[must_use]
+    pub const fn runtime(&self) -> &Arc<Runtime> {
+        &self.runtime
     }
 }
 
@@ -24,38 +34,44 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("{{display_name}}");
             ui.label("Replace this scaffold with the real UI for your app.");
-            if ui.button(format!("clicked {} times", self.counter)).clicked() {
-                self.counter += 1;
+            let label = format!("clicked {} times", self.clicks);
+            if ui.button(label).clicked() {
+                self.clicks += 1;
             }
         });
     }
 }
-{% elsif ui_framework == "freya" %}
-// TODO: freya scaffold. See https://freyaui.dev/ for `fn app()` + `launch(app)`.
-pub struct App;
-impl App {
-    pub fn run_desktop() { /* freya::launch(app); */ }
-    pub fn run_mobile()  { /* freya::launch(app); */ }
-}
-{% elsif ui_framework == "slint" %}
-// TODO: slint scaffold — `slint::slint! { export component AppWindow { ... } }`.
-pub struct App;
-impl App {
-    pub fn run_desktop() {}
-    pub fn run_mobile()  {}
-}
-{% elsif ui_framework == "dioxus" %}
-// TODO: dioxus scaffold — `dioxus::launch(fn app() -> Element { ... })`.
-pub struct App;
-impl App {
-    pub fn run_desktop() {}
-    pub fn run_mobile()  {}
-}
 {% else %}
-// No UI framework selected. Wire your own here.
-pub struct App;
-impl App {
-    pub fn run_desktop() {}
-    pub fn run_mobile()  {}
+use istmo::Runtime;
+
+/// Application state shared by every shell.
+#[derive(Debug)]
+pub struct App {
+    runtime: Arc<Runtime>,
 }
-{% endif %}
+
+impl App {
+    #[must_use]
+    pub const fn new(runtime: Arc<Runtime>) -> Self {
+        Self { runtime }
+    }
+
+    /// Runtime the plugin clients are acquired from.
+    #[must_use]
+    pub const fn runtime(&self) -> &Arc<Runtime> {
+        &self.runtime
+    }
+
+    /// Desktop entry point of the `{{ui_framework}}` shell.
+    pub fn run_desktop(self) {
+        // TODO: launch the {{ui_framework}} UI here.
+        log::info!("{{project-name}} desktop shell started: {self:?}");
+    }
+
+    /// Mobile entry point of the `{{ui_framework}}` shell.
+    pub fn run_mobile(self) {
+        // TODO: launch the {{ui_framework}} UI here.
+        log::info!("{{project-name}} mobile shell started: {self:?}");
+    }
+}
+{% endif -%}

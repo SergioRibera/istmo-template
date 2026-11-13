@@ -52,11 +52,3 @@ if kind != "plugin" && contains(publish, "crates_io") {
     variable::set("publish_crates", false);
 }
 
-// Liquid `replace` filter cannot be used in file names (cargo-generate's
-// filename parser rejects quoted literals). Precompute the slash-separated
-// form of `bundle_id` here so templates can reference `{{bundle_id_path}}`.
-// Rhai's `String::replace` mutates in place and returns unit, so we copy
-// first and then mutate.
-let bid_path = variable::get("bundle_id");
-bid_path.replace(".", "/");
-variable::set("bundle_id_path", bid_path);

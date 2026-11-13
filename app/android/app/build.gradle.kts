@@ -1,12 +1,11 @@
-import org.gradle.api.tasks.Exec
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    // Auto-discovers every istmo plugin's `native/android/` directory
-    // from the enclosing Cargo workspace and injects it into the
-    // module's Kotlin source set — no manual `srcDirs` list.
-    id("dev.istmo.plugin-loader") version "{{istmo_version}}.0"
+    // Builds the Rust crate for every ABI and build type, links the istmo
+    // plugins it depends on (Kotlin sources, manifests, resources, Gradle
+    // dependencies) and applies istmo.toml `[app]` (applicationId,
+    // version, minSdk, label, icon).
+    id("io.github.sergioribera.istmo")
 }
 
 android {
@@ -14,12 +13,8 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "{{bundle_id}}"
-        minSdk        = 26
-        targetSdk     = 34
-        versionCode   = 1
-        versionName   = "0.1.0"
-        ndk { abiFilters += setOf("arm64-v8a") }
+        targetSdk = 34
+        ndk { abiFilters += setOf("arm64-v8a", "x86_64") }
     }
 
     signingConfigs {
@@ -30,7 +25,7 @@ android {
             keyAlias      = "androiddebugkey"
             keyPassword   = "android"
         }
-        {% if publish_play %}
+{%- if publish_play %}
         // Play Store release signing — supply the keystore via CI secrets.
         create("release") {
             val keystorePath = System.getenv("ANDROID_RELEASE_KEYSTORE")
@@ -41,14 +36,16 @@ android {
                 keyPassword   = System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
             }
         }
-        {% endif %}
+{%- endif %}
     }
 
     buildTypes {
-        getByName("debug")   { signingConfig = signingConfigs.getByName("debug") }
+        getByName("debug") { signingConfig = signingConfigs.getByName("debug") }
         getByName("release") {
             isMinifyEnabled = false
-            {% if publish_play %}signingConfig = signingConfigs.getByName("release"){% endif %}
+{%- if publish_play %}
+            signingConfig = signingConfigs.getByName("release")
+{%- endif %}
         }
     }
 
@@ -60,62 +57,10 @@ android {
     packaging { jniLibs { useLegacyPackaging = false } }
 }
 
-android.sourceSets["main"].jniLibs.setSrcDirs(
-    listOf(layout.buildDirectory.dir("rustJniLibs").get().asFile),
-)
-
-val abiToRustTarget = mapOf(
-    "arm64-v8a"    to "aarch64-linux-android",
-    "armeabi-v7a"  to "armv7-linux-androideabi",
-    "x86_64"       to "x86_64-linux-android",
-    "x86"          to "i686-linux-android",
-)
-
-val cargoRoot: File = project.rootDir.resolve("..").normalize()
-val rustJniLibsDir = layout.buildDirectory.dir("rustJniLibs")
-
-val cargoStageTaskNames = mutableListOf<String>()
-
-fun cargoLib(crate: String, libName: String = crate.replace('-', '_')) {
-    val soName = "lib$libName.so"
-    val abis = android.defaultConfig.ndk.abiFilters
-    for (abi in abis) {
-        val rustTarget = abiToRustTarget[abi] ?: error("no rust target for '$abi'")
-        val suffix     = "${libName}_${abi.replace('-', '_')}"
-        val cargoSo    = cargoRoot.resolve("target/$rustTarget/release/$soName")
-        val stagedSo   = rustJniLibsDir.map { it.dir(abi).file(soName) }
-
-        val cargoTask = tasks.register("cargoBuild_$suffix", Exec::class) {
-            group       = "istmo"
-            workingDir  = cargoRoot
-            commandLine("cargo", "build", "--release",
-                        "--target", rustTarget, "-p", crate)
-            outputs.file(cargoSo)
-        }
-        val stageTask = tasks.register("stageRustLib_$suffix") {
-            group      = "istmo"
-            dependsOn(cargoTask)
-            inputs.file(cargoSo)
-            outputs.file(stagedSo)
-            doLast {
-                val dst = stagedSo.get().asFile
-                dst.parentFile.mkdirs()
-                cargoSo.copyTo(dst, overwrite = true)
-            }
-        }
-        cargoStageTaskNames.add(stageTask.name)
-    }
-}
-
-afterEvaluate {
-    tasks.matching { it.name.matches(Regex("merge.*JniLibFolders")) }
-        .configureEach { cargoStageTaskNames.forEach { dependsOn(it) } }
-}
-
-cargoLib("{{project-name}}")
-
 dependencies {
-    implementation("dev.istmo:istmo-runtime:{{istmo_version}}.0")
+    implementation("io.github.sergioribera:istmo-runtime:0.1.0")
+    // `IstmoGameActivity` extends GameActivity.
+    implementation("androidx.games:games-activity:4.4.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

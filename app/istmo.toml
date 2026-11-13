@@ -1,43 +1,54 @@
-# App-side istmo.toml — declarative overrides consumed by `istmo-build`.
-# Every entry is optional; delete this file entirely if you don't need any
-# of them.
+# App-side istmo.toml — the single source of truth for the app identity.
+# `build.rs` (`istmo_build::emit()`) reads it on every build, the
+# `io.github.sergioribera.istmo` Gradle plugin and the generated Xcode
+# settings apply it. A misspelled key fails the build.
 
-# ---------------------------------------------------------------------------
-# [app] — control the Kotlin/Swift codegen `istmo_build::emit()` performs.
-# ---------------------------------------------------------------------------
-# Defaults if this section is absent:
-#   android         = true                     (skipped if no ./android dir)
-#   ios             = true                     (skipped if no ./ios dir)
-#   android_package = "<gradle namespace>.gen" (auto-detected)
-#   ios_app_dir     = <single ./ios/* subdir>  (auto-detected)
-#
-# [app]
-# android         = true
+[app]
+id   = "{{bundle_id}}"            # applicationId + PRODUCT_BUNDLE_IDENTIFIER
+name = "{{display_name}}"         # launcher label / CFBundleDisplayName
+# build   = 1                     # versionCode / CFBundleVersion
+# version = "0.1.0"               # default: Cargo.toml `package.version`
+
+# Kotlin package of the generated dispatchers. Default: the Gradle
+# `namespace` + `.gen`.
 # android_package = "{{bundle_id}}.gen"
-# ios             = true
-# ios_app_dir     = "{{project-name | pascal_case}}App"
-# auto_register   = true             # false → skip generating IstmoPluginRegistry
+# ios_app_dir     = "{{project-name | pascal_case}}App"   # default: the single ios/* app dir
+# auto_register   = true          # false → empty IstmoPluginRegistry
 
-# Per-plugin role / platform overrides. Default role is `host` (Rust calls
-# the plugin, native side implements the backend). Set `role = "client"` for
-# Rust-hosted plugins the native side needs to call.
+# Launcher icons. Every key is optional.
+# [app.icon]
+# image   = "assets/icon.png"           # iOS app icon + legacy Android mipmaps
+# desktop = "assets/icon-tile.png"      # window / .exe icon (default: image)
+#
+# [app.icon.android]                    # adaptive icon (API 26+)
+# foreground = "assets/icon-foreground.xml"
+# background = "#FFFFFF"
+# monochrome = "assets/icon-monochrome.xml"
+
+[min_versions]
+android = 26                      # minSdk
+ios     = "14.0"                  # IPHONEOS_DEPLOYMENT_TARGET
+
+# Per-plugin overrides. Default role is `host` (the native side implements
+# the backend); `client` generates a Kotlin / Swift client for a
+# Rust-hosted plugin. `auto_register = false` leaves the plugin out of
+# the generated registry so the app registers it by hand.
 #
 # [[app.plugin]]
-# id            = "istmo.echo"
-# role          = "client"
-# platforms     = ["android"]
-# auto_register = false                # opt-out this plugin from the registry
+# id            = "istmo.data_store"
+# role          = "host"
+# platforms     = ["android", "ios"]
+# auto_register = false
 
-# Force a specific plugin to run in the `:remote` process instead of its
-# default deployment. Match the plugin's declared `id` from its own
-# istmo.toml (usually `<org>.<name>`).
+# Run a plugin in the `:remote` Android process instead of its default
+# deployment. `plugin` is the id from the plugin's own istmo.toml.
 #
 # [[remote_override]]
 # plugin     = "acme.example_plugin"
 # deployment = "remote"
 
-# Extra Gradle / Swift-package dependencies for the app itself (rare —
-# plugins normally carry their own via their `istmo.toml`).
+# Extra Gradle / Swift-package dependencies for the app itself (plugins
+# carry their own).
 #
 # [[gradle]]
 # group    = "androidx.security"

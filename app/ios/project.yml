@@ -1,34 +1,32 @@
 # xcodegen spec. Generate the .xcodeproj with:
 #
-#     cd ios && xcodegen generate
+#     cargo build && cd ios && xcodegen generate
 #
-# `.xcodeproj` is not checked in — regen is deterministic.
+# `{{project-name | pascal_case}}App/istmo-plugins.yml` is written by the crate's
+# build.rs (any `cargo build` / `cargo check` writes it, so run one before
+# the first `xcodegen generate`). It brings in the plugin sources, the app
+# identity and deployment target from istmo.toml, the Rust library link
+# settings and the pre-build phase that runs cargo. Settings here win
+# over the fragment's, so keep bundle id / version / linker flags out.
 
 name: {{project-name | pascal_case}}App
 
+include:
+  - path: {{project-name | pascal_case}}App/istmo-plugins.yml
+
 options:
-  bundleIdPrefix: {{bundle_id}}
-  deploymentTarget:
-    iOS: 14.0
   createIntermediateGroups: true
   defaultConfig: Debug
 
 packages:
   IstmoRuntime:
     url: https://github.com/SergioRibera/istmo
-    from: "{{istmo_version}}.0"
+    exactVersion: "{{istmo_version}}"
 
 settings:
   base:
     SWIFT_VERSION: 5.9
-    IPHONEOS_DEPLOYMENT_TARGET: 14.0
     ENABLE_USER_SCRIPT_SANDBOXING: NO
-    LIBRARY_SEARCH_PATHS:
-      - $(inherited)
-      - $(PROJECT_DIR)/build/rust/$(PLATFORM_NAME)/$(CURRENT_ARCH)
-    OTHER_LDFLAGS:
-      - $(inherited)
-      - -l{{crate_name}}
 
 targets:
   {{project-name | pascal_case}}App:
@@ -41,12 +39,6 @@ targets:
     dependencies:
       - package: IstmoRuntime
         product: IstmoRuntime
-    preBuildScripts:
-      - name: cargo build {{project-name}} (staticlib per arch)
-        path: build-rust.sh
-        runOnlyWhenInstalling: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: {{bundle_id}}
         TARGETED_DEVICE_FAMILY: "1"
-        ENABLE_USER_SCRIPT_SANDBOXING: NO

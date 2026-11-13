@@ -2,7 +2,8 @@
 name    = "{{project-name}}"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+# wincode (the istmo wire codec) needs 1.89.
+rust-version = "1.89"
 license = "{{crate_license}}"
 authors = ["{{author_name}} <{{author_email}}>"]
 description = "{{description}}"
@@ -10,55 +11,48 @@ repository = "https://github.com/{{gh_username}}/{{project-name}}"
 publish = false
 
 [lib]
+# cdylib: Android `.so`; staticlib: iOS `.a`; rlib: the desktop binary.
 crate-type = ["cdylib", "staticlib", "rlib"]
-
 {% if has_desktop %}
 [[bin]]
 name = "{{project-name}}"
 path = "src/main.rs"
 {% endif %}
-
 [dependencies]
-istmo   = "{{istmo_version}}"
-bincode = { version = "2", features = ["derive", "std"] }
-flume   = { version = "0.11", features = ["async"] }
-pollster = "0.4"
-log      = "0.4"
-
-# Initial plugin clients (only the ones you ticked at generation time).
-{% if plugin_google_sign_in %}istmo-google-sign-in = "0.1"
-{% endif %}{% if plugin_data_store %}istmo-data-store     = "0.1"
-{% endif %}
-{% if has_android %}
+# `game-activity`: the Android host is `IstmoGameActivity`, a
+# `ComponentActivity`, so plugins whose backend needs the activity
+# (sign-in, share, file picker, …) work out of the box.
+istmo = { version = "{{istmo_version}}", default-features = false, features = ["game-activity"] }
+log   = "0.4"
+{% if plugin_google_sign_in or plugin_data_store %}
+# Plugin crates. Their build scripts hand their manifest to `build.rs`,
+# so `istmo::runtime!()` wires the clients and the native projects get
+# the backends without further setup.
+{% endif %}{% if plugin_google_sign_in %}istmo-google-sign-in = "{{istmo_version}}"
+{% endif %}{% if plugin_data_store %}istmo-data-store     = "{{istmo_version}}"
+{% endif %}{% if has_android %}
 [target.'cfg(target_os = "android")'.dependencies]
-{% if ui_framework == "egui" %}eframe = { version = "0.29", default-features = false, features = ["wgpu", "default_fonts", "android-native-activity"] }
-egui   = { version = "0.29", default-features = false }
-winit  = { version = "0.30", default-features = false, features = ["android-native-activity"] }
+{% if ui_framework == "egui" %}eframe = { version = "0.29", default-features = false, features = ["wgpu", "default_fonts", "android-game-activity"] }
+winit  = { version = "0.30", default-features = false, features = ["android-game-activity"] }
 {% endif %}android_logger = "0.14"
-{% endif %}
-{% if has_ios %}
+{% endif %}{% if has_ios and ui_framework == "egui" %}
 [target.'cfg(any(target_os = "ios", target_os = "tvos", target_os = "watchos", target_os = "visionos"))'.dependencies]
-{% if ui_framework == "egui" %}eframe = { version = "0.29", default-features = false, features = ["wgpu", "default_fonts"] }
-egui   = { version = "0.29", default-features = false }
-winit  = { version = "0.30", default-features = false }
-{% endif %}
-{% endif %}
-{% if has_desktop %}
+eframe = { version = "0.29", default-features = false, features = ["wgpu", "default_fonts"] }
+{% endif %}{% if ui_framework == "egui" %}
+# Desktop shell{% unless has_desktop %} (no desktop target: kept so `cargo check` / `clippy` /
+# `test` work on the host){% endunless %}.
 [target.'cfg(not(any(target_os = "android", target_os = "ios", target_os = "tvos", target_os = "watchos", target_os = "visionos")))'.dependencies]
-{% if ui_framework == "egui" %}eframe = { version = "0.29", default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
-egui   = { version = "0.29", default-features = false }
+eframe = { version = "0.29", default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
 {% endif %}
-{% endif %}
-
 [build-dependencies]
-# `istmo-build` reads `istmo.toml` + walks every `DEP_*_ISTMO_MANIFEST`
-# / `DEP_*_ISTMO_CONTRACT` env var emitted by upstream plugin build
-# scripts, so build.rs doesn't need per-plugin `codegen` features.
+# `istmo_build::emit()` reads `istmo.toml`, collects every plugin's
+# manifest and contract, and generates the Kotlin / Swift glue.
 istmo-build = "{{istmo_version}}"
 
 [lints.rust]
 missing_debug_implementations = "warn"
 unreachable_pub = "warn"
+# `#[istmo::mobile_app]` exports `#[unsafe(no_mangle)]` entry points.
 unsafe_code = "allow"
 
 [lints.clippy]
@@ -67,4 +61,3 @@ nursery  = { level = "warn", priority = -1 }
 module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
-missing_safety_doc = "allow"

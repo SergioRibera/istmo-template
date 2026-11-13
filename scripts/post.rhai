@@ -35,6 +35,7 @@ if is_app {
     if !has_desktop {
         rm("app/flake.nix");
         rm("app/src/desktop.rs");
+        rm("app/src/main.rs");
     }
 }
 if is_plugin {

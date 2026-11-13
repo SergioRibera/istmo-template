@@ -1,13 +1,13 @@
 //! `{{project-name}}` — {{description}}
 //!
-//! Same Rust code compiled three ways:
+//! One crate, three shells:
 //!
-//! - Desktop `bin`  — `src/main.rs`.
-//! - Android `cdylib` linked from `NativeActivity` — `mobile_main` below.
-//! - iOS `staticlib` linked into the SwiftUI shell — same `mobile_main`.
+//! - Desktop binary — `src/main.rs`, against a mock runtime.
+//! - Android `cdylib`, loaded by `IstmoGameActivity` — `mobile_main` below.
+//! - iOS `staticlib`, linked into the Xcode app — same `mobile_main`.
 
 pub mod app;
-
+{% if has_desktop %}
 #[cfg(not(any(
     target_os = "android",
     target_os = "ios",
@@ -16,15 +16,27 @@ pub mod app;
     target_os = "visionos",
 )))]
 pub mod desktop;
-
-// The macro auto-wires every plugin the app depends on:
-//   - `istmo.toml` [[remote_override]] entries move plugins to :remote.
-//   - `DEP_*_ISTMO_MANIFEST` env vars (set by each plugin's build.rs)
-//     supply the fully-qualified `<Trait>Client` paths.
-// Manual `plugins: [ClientA, ClientB, ...]` / `remote: [...]` sections
-// still work for anything not carried by a plugin crate's manifest.
+{% endif %}{% if plugin_app_lifecycle or plugin_deep_links or plugin_safe_area %}
+{% if plugin_app_lifecycle %}use istmo::plugins::AppLifecycle;
+{% endif %}{% if plugin_deep_links %}use istmo::plugins::DeepLinks;
+{% endif %}{% if plugin_safe_area %}use istmo::plugins::SafeArea;
+{% endif %}
+// Plugin crates (`istmo-data-store`, …) are wired automatically from
+// their manifests; built-in `istmo::plugins` clients are listed here.
+istmo::runtime!(
+    plugins: [
+{% if plugin_app_lifecycle %}        AppLifecycle,
+{% endif %}{% if plugin_deep_links %}        DeepLinks,
+{% endif %}{% if plugin_safe_area %}        SafeArea,
+{% endif %}    ],
+);
+{% else %}
+// Every plugin crate this app depends on is wired automatically from its
+// manifest. List extra clients (built-in `istmo::plugins`, local plugin
+// traits) with `plugins: [..]`, and the ones that run in the `:remote`
+// Android process with `remote: [..]`.
 istmo::runtime!();
-
+{% endif %}
 #[cfg(any(
     target_os = "android",
     target_os = "ios",
@@ -38,48 +50,38 @@ fn mobile_main() {
     android_logger::init_once(
         android_logger::Config::default().with_max_level(log::LevelFilter::Info),
     );
-    log::info!("{{project-name}} mobile entry point running");
 
-    // TODO: acquire your plugin clients here with the right config type.
-    // Example (data-store):
-    //
-    //     use istmo_data_store::{DataStoreClient, DataStoreConfig};
-    //     let cfg = DataStoreConfig::new("{{crate_name}}");
-    //     let client = pollster::block_on(DataStoreClient::acquire_with(cfg))
-    //         .expect("acquire data store client");
-
-    {% if ui_framework == "egui" %}
+    let runtime = match istmo::Runtime::global() {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            log::error!("istmo runtime is not running: {err}");
+            return;
+        }
+    };
+{% if ui_framework == "egui" %}
     #[cfg(target_os = "android")]
-    let event_loop_builder: Option<
-        Box<dyn FnOnce(&mut winit::event_loop::EventLoopBuilder<eframe::UserEvent>)>,
-    > = {
-        let android_app = istmo::android::android_app()
-            .expect("android_main should have stashed the AndroidApp handle");
-        Some(Box::new(move |builder| {
+    let event_loop_builder = istmo::android::android_app().map(|android_app| {
+        let hook: eframe::EventLoopBuilderHook = Box::new(move |builder| {
             use winit::platform::android::EventLoopBuilderExtAndroid;
             builder.with_android_app(android_app);
-        }))
-    };
+        });
+        hook
+    });
     #[cfg(not(target_os = "android"))]
-    let event_loop_builder: Option<
-        Box<dyn FnOnce(&mut winit::event_loop::EventLoopBuilder<eframe::UserEvent>)>,
-    > = None;
+    let event_loop_builder = None;
 
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         event_loop_builder,
         ..Default::default()
     };
-
     if let Err(err) = eframe::run_native(
         "{{display_name}}",
         options,
-        Box::new(move |cc| Ok(Box::new(app::App::new(cc)))),
+        Box::new(move |_cc| Ok(Box::new(app::App::new(runtime)))),
     ) {
-        log::error!("eframe exited with error: {err:?}");
+        log::error!("eframe exited with error: {err}");
     }
-    {% else %}
-    // TODO: replace with the `{{ui_framework}}` entry point of your choice.
-    app::App::run_mobile();
-    {% endif %}
-}
+{% else %}
+    app::App::new(runtime).run_mobile();
+{% endif %}}

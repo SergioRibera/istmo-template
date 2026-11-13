@@ -1,46 +1,62 @@
-//! Desktop-only "native emulator" — answers outbound envelopes on a
-//! background thread so the same UI + plugin-client code path used by the
-//! mobile shells also runs against a `Runtime::mock()` on desktop.
-//!
-//! Replace the placeholder match arms with your own plugin id handlers.
+//! Desktop runtime. There is no Kotlin / Swift side on desktop, so the
+//! plugins either run as Rust hosts in-process or are answered by the
+//! small emulator below.
 
 use std::sync::Arc;
 
-use istmo::core::{Envelope, Frame, Runtime};
-
-pub fn spawn(runtime: Arc<Runtime>, outbound: flume::Receiver<Envelope>) {
-    std::thread::spawn(move || {
-        while let Ok(env) = outbound.recv() {
-            handle(&runtime, env);
-        }
-    });
+use istmo::{Envelope, Frame, Runtime, RuntimeInit};
+{% if plugin_data_store %}use istmo_data_store::{DataStoreHost, DesktopDataStoreFactory};
+{% endif %}
+/// Start the desktop runtime: register the Rust hosts and answer every
+/// other outbound call on a background thread.
+#[must_use]
+pub fn start() -> Arc<Runtime> {
+    let RuntimeInit { runtime, outbound } = Runtime::mock();
+{% if plugin_data_store %}
+    // Local hosts answer in-process; their calls never reach `outbound`.
+    runtime.register_host(DataStoreHost::new(DesktopDataStoreFactory));
+{% endif %}
+    let emulator = Arc::clone(&runtime);
+    let spawned = std::thread::Builder::new()
+        .name("desktop-emulator".into())
+        .spawn(move || {
+            while let Ok(envelope) = outbound.recv() {
+                emulate(&emulator, envelope);
+            }
+        });
+    if let Err(err) = spawned {
+        log::error!("cannot start the desktop emulator: {err}");
+    }
+    runtime
 }
 
-fn handle(runtime: &Arc<Runtime>, envelope: Envelope) {
-    match envelope.frame {
-        Frame::Call { plugin_id, call_id, method, payload, .. } => {
-            log::debug!(
-                "emulator got Call plugin={plugin_id} method={method} payload={} bytes",
-                payload.len()
-            );
-
-            // TODO: match on `plugin_id` + `method` and respond with a
-            // bincode-encoded payload. Example:
-            //
-            // if plugin_id == "{{gh_username}}.example" && method == "get_value" {
-            //     let response: Option<String> = Some("emulated".into());
-            //     let bytes = bincode::encode_to_vec(&response, bincode::config::standard())
-            //         .expect("encode response");
-            //     runtime.inject_response(call_id, Ok(bytes)).ok();
-            //     return;
-            // }
-            let _ = (call_id, runtime);
+/// Answer a frame meant for a native backend that does not exist on
+/// desktop. Match on `plugin_id` / `method` to emulate one, encoding the
+/// return value with `istmo::codec::encode`.
+fn emulate(runtime: &Arc<Runtime>, envelope: Envelope) {
+    let (call_id, what) = match envelope.frame {
+        Frame::Call {
+            call_id,
+            plugin_id,
+            method,
+            ..
+        } => (call_id, format!("{plugin_id}::{method}")),
+        Frame::CreateInstance {
+            call_id, plugin_id, ..
+        } => (call_id, format!("{plugin_id} instance")),
+        other => {
+            log::debug!("desktop emulator ignores {other:?}");
+            return;
         }
-        Frame::CreateInstance { .. } | Frame::DestroyInstance { .. } |
-        Frame::Cancel { .. } | Frame::Notify { .. } |
-        Frame::EarlyEvent { .. } | Frame::ReleaseNativeHandle { .. } => {
-            log::debug!("emulator ignoring frame variant");
-        }
-        _ => {}
+    };
+    log::warn!("{what} has no desktop backend; failing the call");
+    // An empty error payload reaches the caller as
+    // `IstmoError::PluginError` instead of leaving it waiting forever.
+    let reply = Envelope::new(Frame::Respond {
+        call_id,
+        result: Err(Vec::new()),
+    });
+    if let Err(err) = runtime.dispatch_inbound(reply) {
+        log::debug!("desktop emulator reply for {what} dropped: {err}");
     }
 }

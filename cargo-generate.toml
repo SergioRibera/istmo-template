@@ -84,8 +84,8 @@ default = true
 
 [placeholders.istmo_version]
 type   = "string"
-prompt = "istmo crate version (from crates.io)"
-default = "0.1"
+prompt = "istmo crate version (from crates.io; every istmo crate and first-party plugin shares it)"
+default = "0.1.1-alpha.5"
 
 [placeholders.ui_framework]
 type    = "string"
