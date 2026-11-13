@@ -5,9 +5,14 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use istmo_core::{IstmoError, Runtime, codec};
-use istmo_{{crate_name}}::{
-    {{crate_name | pascal_case}}, {{crate_name | pascal_case}}Client, {{crate_name | pascal_case}}Config, {{crate_name | pascal_case}}Error, {{crate_name | pascal_case}}Factory, {{crate_name | pascal_case}}Host,
-};
+// One item per line: rustfmt keeps that layout whatever the crate name's
+// length, so a freshly generated crate passes `cargo fmt --check`.
+use istmo_{{crate_name}}::{{crate_name | pascal_case}};
+use istmo_{{crate_name}}::{{crate_name | pascal_case}}Client;
+use istmo_{{crate_name}}::{{crate_name | pascal_case}}Config;
+use istmo_{{crate_name}}::{{crate_name | pascal_case}}Error;
+use istmo_{{crate_name}}::{{crate_name | pascal_case}}Factory;
+use istmo_{{crate_name}}::{{crate_name | pascal_case}}Host;
 
 #[derive(Debug, Default)]
 struct MemoryBackend {
