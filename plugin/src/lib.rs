@@ -1,43 +1,63 @@
 //! `istmo-{{project-name}}` — {{description}}
 //!
-//! This crate exposes a single async trait ([`{{crate_name | pascal_case}}`])
-//! backed by native `SharedPreferences`-shaped code on Android and
-//! `UserDefaults`-shaped code on Apple platforms. Reference native
-//! implementations ship alongside this crate under
+//! Rust code calls the async [`{{crate_name | pascal_case}}`] trait through
+//! the generated [`{{crate_name | pascal_case}}Client`]; the native side
+//! implements it. Reference native implementations ship alongside this
+//! crate under
 //! [`native/`](https://github.com/{{gh_username}}/{{project-name}}/tree/main/native).
+//!
+//! Enable the `codegen` feature to expose the plugin's `Contract` for
+//! downstream code generation without the build-script handover.
 
 #![doc(html_root_url = "https://docs.rs/istmo-{{project-name}}")]
 
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
-use istmo::{message, plugin};
+use istmo_macros::{message, plugin};
 
-/// Wire identifier for this plugin. Matches [`istmo.toml`](../istmo.toml).
+/// Wire identifier for this plugin. Matches `istmo.toml`.
 pub const {{crate_name | upcase}}_PLUGIN_ID: &str = "{{gh_username}}.{{crate_name}}";
 
-/// Config handed to the plugin at `acquire_with(cfg)` time. Extend with
-/// the knobs your plugin needs (API keys, backend URLs, feature toggles).
-#[message(bincode = "::bincode")]
+/// Config handed to the native factory when a client is acquired with
+/// `{{crate_name | pascal_case}}Client::acquire_with(config)`. Extend it
+/// with the knobs your plugin needs (backend URLs, feature toggles).
+///
+/// Mark secrets with `#[redact]` to keep them out of the generated
+/// `Debug` output.
+#[message(wincode = "::wincode")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct {{crate_name | pascal_case}}Config {
-    // TODO: replace with your own fields.
+    /// Example setting; replace with your own fields.
     pub example_setting: String,
 }
 
-/// Domain error surface. Adjust variants to match the failure modes of the
-/// underlying platform APIs — the wire codec is derived automatically.
-#[message(bincode = "::bincode")]
+impl {{crate_name | pascal_case}}Config {
+    #[must_use]
+    pub fn new(example_setting: impl Into<String>) -> Self {
+        Self {
+            example_setting: example_setting.into(),
+        }
+    }
+}
+
+/// Domain errors returned by every [`{{crate_name | pascal_case}}`] method.
+///
+/// The type travels on the wire, and `#[plugin]` requires it to
+/// implement [`std::error::Error`].
+#[message(wincode = "::wincode")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum {{crate_name | pascal_case}}Error {
+    /// The native backend failed; carries the platform's message.
     Backend(String),
+    /// The caller passed an argument the backend rejects.
     InvalidInput(String),
 }
 
 impl std::fmt::Display for {{crate_name | pascal_case}}Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Backend(msg)      => write!(f, "{{project-name}} backend error: {msg}"),
+            Self::Backend(msg) => write!(f, "{{project-name}} backend error: {msg}"),
             Self::InvalidInput(msg) => write!(f, "{{project-name}} invalid input: {msg}"),
         }
     }
@@ -45,26 +65,23 @@ impl std::fmt::Display for {{crate_name | pascal_case}}Error {
 
 impl std::error::Error for {{crate_name | pascal_case}}Error {}
 
-impl {{crate_name | pascal_case}}Config {
-    #[must_use]
-    pub fn new(example_setting: impl Into<String>) -> Self {
-        Self { example_setting: example_setting.into() }
-    }
-}
-
-/// Plugin trait. Every method is `async`; the macro emits
-/// `{{crate_name | pascal_case}}Client` (used from Rust) and the wire codec.
+/// Plugin surface. `#[plugin]` keeps the trait and emits
+/// `{{crate_name | pascal_case}}Client` (called from Rust) and
+/// `{{crate_name | pascal_case}}Host` (for a Rust implementation, e.g. on
+/// desktop).
 ///
-/// **Replace the example methods below with your real API surface.**
+/// Replace the example methods with your real API. Streams are declared
+/// with `#[istmo::stream]`, cancellable methods take a
+/// `cancel: istmo_core::CancelToken` argument.
 #[plugin(
     name = "{{gh_username}}.{{crate_name}}",
     init = {{crate_name | pascal_case}}Config,
-    crate = "::istmo",
+    crate = "::istmo_core",
 )]
 pub trait {{crate_name | pascal_case}} {
-    /// Fetch a value the native side maintains.
+    /// Read the value stored under `key`, if any.
     async fn get_value(&self, key: String) -> Result<Option<String>, {{crate_name | pascal_case}}Error>;
 
-    /// Write a value the native side will persist.
+    /// Store `value` under `key`.
     async fn set_value(&self, key: String, value: String) -> Result<(), {{crate_name | pascal_case}}Error>;
 }

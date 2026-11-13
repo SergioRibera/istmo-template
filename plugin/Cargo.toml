@@ -2,15 +2,20 @@
 name    = "istmo-{{project-name}}"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+# wincode (the wire codec behind `#[message]`) needs 1.89.
+rust-version = "1.89"
 license = "{{crate_license}}"
 authors = ["{{author_name}} <{{author_email}}>"]
 description = "{{description}}"
 repository = "https://github.com/{{gh_username}}/{{project-name}}"
 homepage   = "https://github.com/{{gh_username}}/{{project-name}}"
 readme = "README.md"
+include = ["/src", "/build.rs", "/istmo.toml", "/native", "/README.md", "/LICENSE*", "/UNLICENSE"]
 keywords = ["istmo", "mobile", "plugin"]
 categories = ["api-bindings"]
+# Cargo only forwards `cargo:KEY=VALUE` build-script metadata (the
+# istmo.toml manifest + plugin contract) to dependents of a crate that
+# declares `links`.
 links = "istmo_{{crate_name}}"
 
 [features]
@@ -21,16 +26,17 @@ default = []
 codegen = ["dep:istmo-build"]
 
 [dependencies]
-istmo       = "{{istmo_version}}"
-bincode     = { version = "2", default-features = false, features = ["derive", "std"] }
-pollster    = "0.4"
-istmo-build = { version = "{{istmo_version}}", optional = true }
+# `istmo-core` + `istmo-macros` instead of the `istmo` facade: the facade
+# picks the Android activity flavour, which is the app's choice.
+istmo-core   = "{{istmo_version}}"
+istmo-macros = "{{istmo_version}}"
+wincode      = { version = "0.6", default-features = false, features = ["derive", "std"] }
+istmo-build  = { version = "{{istmo_version}}", optional = true }
 
 [build-dependencies]
 istmo-build = "{{istmo_version}}"
 
 [dev-dependencies]
-flume    = { version = "0.11", features = ["async"] }
 pollster = "0.4"
 
 [lints.rust]

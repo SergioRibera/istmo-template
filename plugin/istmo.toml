@@ -1,15 +1,33 @@
 [plugin]
+# Wire id: `[A-Za-z0-9._-]+`, unique across every plugin an app links.
+# Must match `#[plugin(name = "...")]` in src/lib.rs.
 id          = "{{gh_username}}.{{crate_name}}"
 client_type = "::istmo_{{crate_name}}::{{crate_name | pascal_case}}Client"
+# Kotlin package of `native/android/`. The app generates this plugin's
+# dispatcher, `Backend` / `Factory` interfaces and types into it, so the
+# native sources use them without imports whatever package the app picks.
+android_package = "{{bundle_id}}"
+# Reference factories shipped in `native/`, constructed by the app's
+# generated `IstmoPluginRegistry`.
+android_backend = "{{bundle_id}}.{{crate_name | pascal_case}}FactoryImpl"
+ios_backend     = "{{crate_name | pascal_case}}FactoryImpl"
+# Backends whose construction varies per app (API keys, a view the app
+# owns) opt out and let the app register them by hand.
+# auto_register = false
 
-# Native platform dependencies. Uncomment / edit the sections your
-# plugin needs. `istmo-build` parses this file at plugin build time
-# and forwards the entries to every downstream app via `DEP_*_NATIVE_DEPS`.
+# Native platform dependencies, forwarded to every app that links this
+# plugin. Uncomment / edit the ones your backend needs.
 
 # [[gradle]]
-# coordinate = "com.google.android.gms:play-services-auth:21.0.0"
+# group    = "com.example"
+# artifact = "sdk"
+# version  = "1.0.0"
 
 # [[swift_package]]
-# name    = "GoogleSignInSwift"
-# url     = "https://github.com/google/GoogleSignIn-iOS"
-# version = "8.0.0"
+# url          = "https://github.com/example/sdk-ios.git"
+# product      = "ExampleSDK"
+# from_version = "1.0.0"
+
+# [min_versions]
+# android = 26
+# ios     = "14.0"

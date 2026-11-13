@@ -1,23 +1,79 @@
-//! End-to-end smoke: spin a mock runtime, install a fake host, exercise
-//! every method through the generated client.
+//! End-to-end smoke: a mock runtime hosts an in-memory Rust implementation
+//! of the plugin, and every method goes through the generated client.
 
-use istmo::core::{Runtime, RuntimeInit};
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use istmo_core::{IstmoError, Runtime, codec};
 use istmo_{{crate_name}}::{
-    {{crate_name | pascal_case}}Client, {{crate_name | pascal_case}}Config,
-    {{crate_name | pascal_case}}Error,
+    {{crate_name | pascal_case}}, {{crate_name | pascal_case}}Client, {{crate_name | pascal_case}}Config, {{crate_name | pascal_case}}Error, {{crate_name | pascal_case}}Factory, {{crate_name | pascal_case}}Host,
 };
 
+#[derive(Debug, Default)]
+struct MemoryBackend {
+    values: Mutex<HashMap<String, String>>,
+}
+
+impl {{crate_name | pascal_case}} for MemoryBackend {
+    async fn get_value(&self, key: String) -> Result<Option<String>, {{crate_name | pascal_case}}Error> {
+        Ok(istmo_core::sync::lock(&self.values).get(&key).cloned())
+    }
+
+    async fn set_value(&self, key: String, value: String) -> Result<(), {{crate_name | pascal_case}}Error> {
+        if key.is_empty() {
+            return Err({{crate_name | pascal_case}}Error::InvalidInput("empty key".into()));
+        }
+        istmo_core::sync::lock(&self.values).insert(key, value);
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct MemoryFactory;
+
+impl {{crate_name | pascal_case}}Factory for MemoryFactory {
+    type Instance = MemoryBackend;
+
+    fn create(&self, _config: {{crate_name | pascal_case}}Config) -> MemoryBackend {
+        MemoryBackend::default()
+    }
+}
+
 #[test]
-fn client_roundtrip() {
-    let RuntimeInit { runtime, outbound: _ } = Runtime::mock();
+fn client_round_trips_through_rust_host() {
+    let init = Runtime::mock();
+    init.runtime.register_host({{crate_name | pascal_case}}Host::new(MemoryFactory));
 
-    // TODO: register a fake `{{crate_name | pascal_case}}Host<Impl>` here that
-    // answers `get_value` / `set_value` with in-memory state, then acquire a
-    // client and assert the round-trip returns the expected payloads.
-    let _rt = runtime;
-    let _cfg = {{crate_name | pascal_case}}Config::new("smoke");
+    let client = pollster::block_on({{crate_name | pascal_case}}Client::from_runtime_with(
+        &init.runtime,
+        {{crate_name | pascal_case}}Config::new("smoke"),
+    ))
+    .expect("acquire client");
 
-    // Placeholder assertion so the file compiles until the real fake host lands.
-    let err = {{crate_name | pascal_case}}Error::InvalidInput("todo".into());
-    assert_eq!(format!("{err}"), "{{project-name}} invalid input: todo");
+    pollster::block_on(client.set_value("greeting".into(), "hello".into())).expect("set_value");
+    let value = pollster::block_on(client.get_value("greeting".into())).expect("get_value");
+    assert_eq!(value.as_deref(), Some("hello"));
+
+    let missing = pollster::block_on(client.get_value("missing".into())).expect("get_value");
+    assert_eq!(missing, None);
+}
+
+#[test]
+fn domain_error_reaches_the_caller() {
+    let init = Runtime::mock();
+    init.runtime.register_host({{crate_name | pascal_case}}Host::new(MemoryFactory));
+
+    let client = pollster::block_on({{crate_name | pascal_case}}Client::from_runtime_with(
+        &init.runtime,
+        {{crate_name | pascal_case}}Config::new("smoke"),
+    ))
+    .expect("acquire client");
+
+    let err = pollster::block_on(client.set_value(String::new(), "x".into()))
+        .expect_err("empty key is rejected");
+    let IstmoError::PluginError { bytes } = err else {
+        panic!("expected a domain error, got {err:?}");
+    };
+    let (decoded, _) = codec::decode::<{{crate_name | pascal_case}}Error>(&bytes).expect("decode domain error");
+    assert_eq!(decoded, {{crate_name | pascal_case}}Error::InvalidInput("empty key".into()));
 }

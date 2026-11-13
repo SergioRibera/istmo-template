@@ -1,16 +1,36 @@
-package {{gh_username}}.{{crate_name}}
+package {{bundle_id}}
 
 import android.content.Context
+import android.content.SharedPreferences
+import dev.istmo.runtime.BackendException
 
-// Reference backend for the {{crate_name | pascal_case}} plugin.
-//
-// The generated `{{crate_name | pascal_case}}Dispatcher` requires a
-// `{{crate_name | pascal_case}}Backend` interface — implement each trait
-// method with the real platform APIs.
-class {{crate_name | pascal_case}}BackendImpl(private val context: Context) /* : {{crate_name | pascal_case}}Backend */ {
+/**
+ * Reference backend for the `{{gh_username}}.{{crate_name}}` plugin.
+ *
+ * Implements the `{{crate_name | pascal_case}}Backend` interface the app's
+ * build generates from the Rust trait (method names keep the Rust
+ * spelling). Replace the `SharedPreferences` example with the platform
+ * API your plugin wraps; throw `BackendException({{crate_name | pascal_case}}Error.…)`
+ * for domain errors.
+ */
+class {{crate_name | pascal_case}}BackendImpl(
+    context: Context,
+    config: {{crate_name | pascal_case}}Config,
+) : {{crate_name | pascal_case}}Backend {
 
-    // TODO: implement the generated interface methods here.
-    //
-    // suspend fun getValue(key: String): String? = ...
-    // suspend fun setValue(key: String, value: String) { ... }
+    private val prefs: SharedPreferences = context.getSharedPreferences(
+        "${context.packageName}.{{crate_name}}.${config.exampleSetting}",
+        Context.MODE_PRIVATE,
+    )
+
+    override suspend fun get_value(key: String): String? = prefs.getString(key, null)
+
+    override suspend fun set_value(key: String, value: String) {
+        if (key.isEmpty()) {
+            throw BackendException({{crate_name | pascal_case}}Error.InvalidInput("empty key"))
+        }
+        if (!prefs.edit().putString(key, value).commit()) {
+            throw BackendException({{crate_name | pascal_case}}Error.Backend("SharedPreferences commit failed"))
+        }
+    }
 }
