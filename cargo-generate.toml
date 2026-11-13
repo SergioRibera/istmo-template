@@ -84,7 +84,7 @@ default = true
 
 [placeholders.istmo_version]
 type   = "string"
-prompt = "istmo crate version (from crates.io; every istmo crate and first-party plugin shares it)"
+prompt = "istmo version (shared by every istmo crate, first-party plugin, the Maven runtime + Gradle plugin and the Swift package tag)"
 default = "0.1.1-alpha.5"
 
 [placeholders.ui_framework]

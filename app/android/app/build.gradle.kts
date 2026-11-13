@@ -58,7 +58,8 @@ android {
 }
 
 dependencies {
-    implementation("io.github.sergioribera:istmo-runtime:0.1.0")
+    // Kotlin runtime; shares its version with the istmo crates and the Gradle plugin.
+    implementation("io.github.sergioribera:istmo-runtime:{{istmo_version}}")
     // `IstmoGameActivity` extends GameActivity.
     implementation("androidx.games:games-activity:4.4.0")
     implementation("androidx.core:core-ktx:1.13.1")
