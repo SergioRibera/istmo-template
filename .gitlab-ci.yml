@@ -17,13 +17,13 @@ test:
 {% if has_android and is_app %}
 android:
   stage: android
-  image: ghcr.io/cross-rs/aarch64-linux-android:latest
+  # Rust + Android SDK/NDK + Gradle, with the NDK linkers preconfigured.
+  image: sergioribera/rust-android:1.98-sdk-36
   script:
-    # The APK itself is assembled by Gradle (`io.github.sergioribera.istmo`);
-    # this job only proves the library cross-compiles.
-    - cargo build --release --lib --target aarch64-linux-android
+    # The `io.github.sergioribera.istmo` Gradle plugin runs cargo for every ABI.
+    - cd android && gradle assembleDebug --no-daemon
   artifacts:
-    paths: [target/aarch64-linux-android/release/lib{{crate_name}}.so]
+    paths: [android/app/build/outputs/apk/debug/app-debug.apk]
 {% endif %}
 
 {% if has_ios and is_app %}

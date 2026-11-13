@@ -117,5 +117,5 @@ just lint
 workflows fire on `v*` tags.
 {% endif %}{% if ci_gitlab %}
 `.gitlab-ci.yml` runs `cargo fmt --check`, `cargo clippy` and
-`cargo test` on the MSRV image{% if is_app and has_android %}, cross-compiles the Android library{% endif %}{% if is_app and has_ios %}, builds the iOS app on a macOS runner{% endif %}{% if bundle_desktop %}, builds the desktop bundle{% endif %}{% if publish_crates %}, and publishes to crates.io on `v*` tags{% endif %}.
+`cargo test` on the MSRV image{% if is_app and has_android %}, builds the debug APK{% endif %}{% if is_app and has_ios %}, builds the iOS app on a macOS runner{% endif %}{% if bundle_desktop %}, builds the desktop bundle{% endif %}{% if publish_crates %}, and publishes to crates.io on `v*` tags{% endif %}.
 {% endif %}
