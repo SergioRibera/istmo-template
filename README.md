@@ -113,9 +113,9 @@ just lint
 ## Continuous integration
 {% if ci_github %}
 `.github/workflows/ci.yml` runs `cargo fmt --check`, `cargo clippy` and
-`cargo test`, plus an MSRV check{% if is_app and has_android %}, an Android APK build{% endif %}{% if is_app and has_ios %}, an iOS simulator build{% endif %}. Release
+`cargo test --all-targets`, plus an MSRV check{% if is_app and has_android %}, an Android APK build{% endif %}{% if is_app and has_ios %}, an iOS simulator build{% endif %}. Release
 workflows fire on `v*` tags.
 {% endif %}{% if ci_gitlab %}
 `.gitlab-ci.yml` runs `cargo fmt --check`, `cargo clippy` and
-`cargo test` on the MSRV image{% if is_app and has_android %}, builds the debug APK{% endif %}{% if is_app and has_ios %}, builds the iOS app on a macOS runner{% endif %}{% if bundle_desktop %}, builds the desktop bundle{% endif %}{% if publish_crates %}, and publishes to crates.io on `v*` tags{% endif %}.
+`cargo test --all-targets` on the MSRV image{% if is_app and has_android %}, builds the debug APK{% endif %}{% if is_app and has_ios %}, builds the iOS app on a macOS runner{% endif %}{% if bundle_desktop %}, builds the desktop bundle{% endif %}{% if publish_crates %}, and publishes to crates.io on `v*` tags{% endif %}.
 {% endif %}

@@ -44,7 +44,7 @@ scratch directory, point the istmo crates at a checkout with
 `[patch.crates-io]` (`istmo`, `istmo-core`, `istmo-macros`,
 `istmo-build`, `istmo-plugins`, `istmo-plugins-schema`, `istmo-window`,
 `istmo-android`, `istmo-ios`, and the plugin crates), then run
-`cargo clippy --all-targets -- -D warnings`, `cargo test`
+`cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`
 and `cargo fmt --check` in it.
 
 For a plugin, also build an app that depends on it: its `build.rs`
