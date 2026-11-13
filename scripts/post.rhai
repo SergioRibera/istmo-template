@@ -41,6 +41,7 @@ if is_app {
 if is_plugin {
     if !has_android { rm("plugin/native/android"); }
     if !has_ios     { rm("plugin/native/ios"); }
+    if !has_android && !has_ios { rm("plugin/native"); }
 }
 
 if is_plugin {

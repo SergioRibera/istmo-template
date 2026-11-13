@@ -3,14 +3,25 @@
 # Must match `#[plugin(name = "...")]` in src/lib.rs.
 id          = "{{gh_username}}.{{crate_name}}"
 client_type = "::istmo_{{crate_name}}::{{crate_name | pascal_case}}Client"
+{%- if has_android %}
 # Kotlin package of `native/android/`. The app generates this plugin's
 # dispatcher, `Backend` / `Factory` interfaces and types into it, so the
 # native sources use them without imports whatever package the app picks.
-android_package = "{{bundle_id}}"
-# Reference factories shipped in `native/`, constructed by the app's
-# generated `IstmoPluginRegistry`.
-android_backend = "{{bundle_id}}.{{crate_name | pascal_case}}FactoryImpl"
-ios_backend     = "{{crate_name | pascal_case}}FactoryImpl"
+# Keep it apart from every app's own package: istmo-build owns it.
+android_package = "{{bundle_id}}.{{crate_name | remove: "_"}}"
+# Reference factory shipped in `native/android/`, constructed by the
+# app's generated `IstmoPluginRegistry`.
+android_backend = "{{bundle_id}}.{{crate_name | remove: "_"}}.{{crate_name | pascal_case}}FactoryImpl"
+{%- endif %}
+{%- if has_ios %}
+# Reference factory shipped in `native/ios/`.
+ios_backend = "{{crate_name | pascal_case}}FactoryImpl"
+{%- endif %}
+{%- unless has_android and has_ios %}
+# No reference backend ships for {% unless has_android %}Android{% unless has_ios %} or {% endunless %}{% endunless %}{% unless has_ios %}iOS{% endunless %}. An app built
+# for it writes its own `{{crate_name | pascal_case}}FactoryImpl`, which its
+# generated `IstmoPluginRegistry` constructs.
+{%- endunless %}
 # Backends whose construction varies per app (API keys, a view the app
 # owns) opt out and let the app register them by hand.
 # auto_register = false

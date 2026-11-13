@@ -1,4 +1,4 @@
-package {{bundle_id}}
+package {{bundle_id}}.{{crate_name | remove: "_"}}
 
 import android.content.Context
 import android.content.SharedPreferences

@@ -81,8 +81,28 @@ wires its client in Rust and registers its native backend.
   dependencies. `build.rs` (`istmo_build::emit()`) hands it, plus the
   contract extracted from `src/lib.rs`, to every app that depends on this
   crate.
-- `native/android/`, `native/ios/` — reference backends. Apps compile them
-  in and register them through their generated `IstmoPluginRegistry`.
+{%- if has_android %}
+- `native/android/` — the reference Android backend, in the Kotlin
+  package `android_package` names. The `io.github.sergioribera.istmo`
+  Gradle plugin compiles it into every app that depends on this crate,
+  next to the dispatcher and types the app's build generates into the
+  same package.
+{%- endif %}
+{%- if has_ios %}
+- `native/ios/` — the reference iOS backend, added to the app target by
+  the generated `istmo-plugins.yml` xcodegen fragment.
+{%- endif %}
+{%- if has_android or has_ios %}
+- Apps register the backends through their generated
+  `IstmoPluginRegistry`; set `auto_register = false` in `istmo.toml` when
+  each app has to construct the backend itself.
+{%- endif %}
+{%- unless has_android and has_ios %}
+- Platforms without a reference backend: the app implements the
+  generated `{{crate_name | pascal_case}}Factory` as
+  `{{crate_name | pascal_case}}FactoryImpl`, or hosts the trait in Rust
+  with `{{crate_name | pascal_case}}Host`.
+{%- endunless %}
 - `tests/smoke.rs` — the client against an in-memory Rust host.
 
 ```sh

@@ -38,7 +38,7 @@ default = "An istmo-powered project."
 
 [placeholders.bundle_id]
 type   = "string"
-prompt = "Bundle / application id (reverse DNS, e.g. com.acme.myapp)"
+prompt = "Bundle / application id; for a plugin, the prefix of its Kotlin package (reverse DNS, e.g. com.acme.myapp)"
 default = "com.acme.myapp"
 regex   = "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
 
