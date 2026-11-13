@@ -21,7 +21,7 @@ jobs:
       matrix:
         os: [ubuntu-latest{% if has_ios %}, macos-latest{% endif %}]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -34,7 +34,7 @@ jobs:
     name: cargo check (MSRV 1.89)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.89
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --all-targets
@@ -43,13 +43,13 @@ jobs:
     name: android build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: '17' }
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: 'platforms;android-34 build-tools;34.0.0 ndk;26.3.11579264'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with: { gradle-version: '8.7' }
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: 'aarch64-linux-android,x86_64-linux-android' }
@@ -60,7 +60,7 @@ jobs:
         run: gradle assembleDebug
         env:
           ANDROID_NDK_HOME: ${{"{{"}} env.ANDROID_SDK_ROOT {{"}}"}}/ndk/26.3.11579264
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
@@ -69,7 +69,7 @@ jobs:
     name: ios build
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with: { targets: 'aarch64-apple-ios-sim,x86_64-apple-ios' }
       - uses: Swatinem/rust-cache@v2
@@ -95,12 +95,12 @@ jobs:
     name: nix bundle desktop
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v27
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
         with: { nix_path: nixpkgs=channel:nixos-unstable }
       - run: nix flake check
       - run: nix build .#bundle
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-bundle
           path: result/
