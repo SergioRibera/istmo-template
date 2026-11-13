@@ -9,8 +9,9 @@ name = "{{display_name}}"         # launcher label / CFBundleDisplayName
 # build   = 1                     # versionCode / CFBundleVersion
 # version = "0.1.0"               # default: Cargo.toml `package.version`
 
-# Kotlin package of the generated dispatchers. Default: the Gradle
-# `namespace` + `.gen`.
+# Kotlin package of the generated code for the app's own and the
+# built-in contracts (plugin crates that declare `android_package`
+# generate into theirs). Default: the Gradle `namespace` + `.gen`.
 # android_package = "{{bundle_id}}.gen"
 # ios_app_dir     = "{{project-name | pascal_case}}App"   # default: the single ios/* app dir
 # auto_register   = true          # false → empty IstmoPluginRegistry
@@ -24,6 +25,20 @@ name = "{{display_name}}"         # launcher label / CFBundleDisplayName
 # foreground = "assets/icon-foreground.xml"
 # background = "#FFFFFF"
 # monochrome = "assets/icon-monochrome.xml"
+
+# Info.plist entries on top of the ones plugins declare (e.g. a localised
+# usage description). They land between the `istmo:background` markers
+# of Info.plist.
+# [app.info_plist]
+# NSCameraUsageDescription = "Scan the QR code on your ticket."
+
+# File types the app opens: Android intent filters (between the
+# `istmo:documents` markers of AndroidManifest.xml), iOS document types.
+# [[app.document_type]]
+# name       = "PDF document"
+# id         = "com.adobe.pdf"
+# extensions = ["pdf"]
+# mime_types = ["application/pdf"]
 
 [min_versions]
 android = 26                      # minSdk

@@ -6,3 +6,4 @@ DerivedData/
 .istmo/
 */Plugins/IstmoMain.swift
 */Plugins/IstmoPluginRegistry.swift
+*/Info.plist.background.xml

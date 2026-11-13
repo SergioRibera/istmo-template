@@ -22,6 +22,14 @@
                 <action   android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- build.rs fills this block with the `[[app.document_type]]`
+                 intent filters from istmo.toml. -->
+            <!-- istmo:documents:start -->
+            <!-- istmo:documents:end -->
         </activity>
+        <!-- build.rs fills this block with the services plugins declare
+             (`android_service` in their istmo.toml). -->
+        <!-- istmo:services:start -->
+        <!-- istmo:services:end -->
     </application>
 </manifest>

@@ -35,5 +35,9 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <!-- build.rs fills this block with the plugins' and `[app.info_plist]`
+         entries (usage descriptions, background modes, document types). -->
+    <!-- istmo:background:start -->
+    <!-- istmo:background:end -->
 </dict>
 </plist>
