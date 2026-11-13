@@ -12,7 +12,7 @@ The template asks:
 |--------|---------|
 | `kind` | `app` (multi-platform app) or `plugin` (istmo plugin crate) |
 | `platforms` | android / ios / desktop |
-| `plugins` | app only: built-in `istmo::plugins` clients (`app_lifecycle`, `deep_links`, `safe_area`) and plugin crates (`istmo-google-sign-in`, `istmo-data-store`) |
+| `plugins` | app only: built-in `istmo::plugins` clients (`app_lifecycle`, `deep_links`, `safe_area`) and plugin crates (`istmo-google-sign-in`, `istmo-data-store`, `istmo-biometric`, `istmo-share`, `istmo-file-picker`, `istmo-opener`, `istmo-camera`, `istmo-barcode-scanner`); the desktop shell registers each crate's Rust desktop host where it ships one (all but sign-in and share) |
 | `publish_targets` | github-release / play-store / app-store / crates.io (plugins only) |
 | `ci` | github-actions and/or gitlab-ci |
 | `use_nix_bundle` | `nix-bundle-app` flake output for desktop packaging |

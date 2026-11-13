@@ -29,6 +29,22 @@ variable::set("plugin_deep_links",     contains(plugins, "deep_links"));
 variable::set("plugin_safe_area",      contains(plugins, "safe_area"));
 variable::set("plugin_google_sign_in", contains(plugins, "google_sign_in"));
 variable::set("plugin_data_store",     contains(plugins, "data_store"));
+variable::set("plugin_biometric",      contains(plugins, "biometric"));
+variable::set("plugin_share",          contains(plugins, "share"));
+variable::set("plugin_file_picker",    contains(plugins, "file_picker"));
+variable::set("plugin_opener",         contains(plugins, "opener"));
+variable::set("plugin_camera",         contains(plugins, "camera"));
+variable::set("plugin_barcode_scanner", contains(plugins, "barcode_scanner"));
+
+// plugin crates the app depends on, and the ones with a Rust desktop host
+let crate_plugins = ["google_sign_in", "data_store", "biometric", "share", "file_picker", "opener", "camera", "barcode_scanner"];
+let host_plugins  = ["data_store", "biometric", "file_picker", "opener", "camera", "barcode_scanner"];
+let any_crate = false;
+let any_host  = false;
+for p in crate_plugins { if contains(plugins, p) { any_crate = true; } }
+for p in host_plugins  { if contains(plugins, p) { any_host = true; } }
+variable::set("plugin_crates", any_crate);
+variable::set("desktop_hosts", any_host);
 
 // publish targets
 variable::set("publish_github",   contains(publish, "github_release"));

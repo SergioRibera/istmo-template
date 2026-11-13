@@ -17,7 +17,7 @@ License: {{crate_license}}
 - Platforms: {% if has_android %}android {% endif %}{% if has_ios %}ios {% endif %}{% if has_desktop %}desktop{% endif %}
 - CI: {% if ci_github %}github-actions {% endif %}{% if ci_gitlab %}gitlab-ci{% endif %}
 {%- if is_app %}
-- Plugins: {% if plugin_app_lifecycle %}AppLifecycle {% endif %}{% if plugin_deep_links %}DeepLinks {% endif %}{% if plugin_safe_area %}SafeArea {% endif %}{% if plugin_google_sign_in %}istmo-google-sign-in {% endif %}{% if plugin_data_store %}istmo-data-store{% endif %}
+- Plugins: {% if plugin_app_lifecycle %}AppLifecycle {% endif %}{% if plugin_deep_links %}DeepLinks {% endif %}{% if plugin_safe_area %}SafeArea {% endif %}{% if plugin_google_sign_in %}istmo-google-sign-in {% endif %}{% if plugin_data_store %}istmo-data-store {% endif %}{% if plugin_biometric %}istmo-biometric {% endif %}{% if plugin_share %}istmo-share {% endif %}{% if plugin_file_picker %}istmo-file-picker {% endif %}{% if plugin_opener %}istmo-opener {% endif %}{% if plugin_camera %}istmo-camera {% endif %}{% if plugin_barcode_scanner %}istmo-barcode-scanner{% endif %}
 - UI framework: `{{ui_framework}}` (see `src/app.rs`)
 - Desktop packaging: {% if bundle_desktop %}nix-bundle-app (`nix build .#bundle`){% else %}not configured{% endif %}
 {%- endif %}

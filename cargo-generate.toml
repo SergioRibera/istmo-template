@@ -56,7 +56,7 @@ default = ["android", "ios", "desktop"]
 [placeholders.plugins]
 type   = "array"
 prompt = "Initial plugins (app archetype only — ignored for plugin kind)"
-choices = ["app_lifecycle", "deep_links", "safe_area", "google_sign_in", "data_store"]
+choices = ["app_lifecycle", "deep_links", "safe_area", "google_sign_in", "data_store", "biometric", "share", "file_picker", "opener", "camera", "barcode_scanner"]
 default = []
 
 [placeholders.crate_license]

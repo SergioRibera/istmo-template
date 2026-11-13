@@ -5,7 +5,12 @@
 use std::sync::Arc;
 
 use istmo::{Envelope, Frame, IstmoError, Runtime, RuntimeConfig, RuntimeInit};
-{% if plugin_data_store %}use istmo_data_store::{DataStoreHost, DesktopDataStoreFactory};
+{% if plugin_barcode_scanner %}use istmo_barcode_scanner::{BarcodeScannerHost, DesktopBarcodeScanner};
+{% endif %}{% if plugin_biometric %}use istmo_biometric::{BiometricHost, DesktopBiometric};
+{% endif %}{% if plugin_camera %}use istmo_camera::{CameraHost, DesktopCameraFactory};
+{% endif %}{% if plugin_data_store %}use istmo_data_store::{DataStoreHost, DesktopDataStoreFactory};
+{% endif %}{% if plugin_file_picker %}use istmo_file_picker::{DesktopFilePicker, FilePickerHost};
+{% endif %}{% if plugin_opener %}use istmo_opener::{DesktopOpener, OpenerHost};
 {% endif %}
 /// Start the desktop runtime: register the Rust hosts and answer every
 /// other outbound call on a background thread.
@@ -15,9 +20,17 @@ use istmo::{Envelope, Frame, IstmoError, Runtime, RuntimeConfig, RuntimeInit};
 /// same in every shell.
 pub fn start() -> Result<Arc<Runtime>, IstmoError> {
     let RuntimeInit { runtime, outbound } = Runtime::init(RuntimeConfig::inline())?;
-{% if plugin_data_store %}
+{% if desktop_hosts %}
     // Local hosts answer in-process; their calls never reach `outbound`.
-    runtime.register_host(DataStoreHost::new(DesktopDataStoreFactory));
+{% endif %}{% if plugin_barcode_scanner %}    runtime.register_host(BarcodeScannerHost::new(DesktopBarcodeScanner));
+{% endif %}{% if plugin_biometric %}    runtime.register_host(BiometricHost::new(DesktopBiometric::default()));
+{% endif %}{% if plugin_camera %}    runtime.register_host(CameraHost::new(DesktopCameraFactory));
+{% endif %}{% if plugin_data_store %}    runtime.register_host(DataStoreHost::new(DesktopDataStoreFactory));
+{% endif %}{% if plugin_file_picker %}    let file_picker = DesktopFilePicker::new();
+    // Forgets a picked file's path once the client drops its handle.
+    file_picker.install_release_hook(&runtime);
+    runtime.register_host(FilePickerHost::new(file_picker));
+{% endif %}{% if plugin_opener %}    runtime.register_host(OpenerHost::new(DesktopOpener::default()));
 {% endif %}
     let emulator = Arc::clone(&runtime);
     let spawned = std::thread::Builder::new()
