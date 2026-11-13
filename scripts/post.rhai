@@ -44,17 +44,20 @@ if is_plugin {
     if !has_android && !has_ios { rm("plugin/native"); }
 }
 
+// The generated project's workflows live in `github/` so GitHub does not
+// run them on the template repo itself.
+if ci_github { file::rename("github", ".github"); } else { rm("github"); }
 if is_plugin {
     rm(".github/workflows/release-play.yml");
     rm(".github/workflows/release-appstore.yml");
 }
-if !ci_github { rm(".github"); }
 if !ci_gitlab { rm(".gitlab-ci.yml"); }
 
 if ci_github {
     if !publish_play     { rm(".github/workflows/release-play.yml"); }
     if !publish_appstore { rm(".github/workflows/release-appstore.yml"); }
     if !publish_crates   { rm(".github/workflows/release-crates.yml"); }
+    if !variable::get("publish_github") { rm(".github/workflows/release.yml"); }
 }
 
 // 3. license file(s)
