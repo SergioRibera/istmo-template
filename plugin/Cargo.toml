@@ -8,7 +8,6 @@ license = "{{crate_license}}"
 authors = ["{{author_name}} <{{author_email}}>"]
 description = "{{description}}"
 repository = "https://github.com/{{gh_username}}/{{project-name}}"
-homepage   = "https://github.com/{{gh_username}}/{{project-name}}"
 readme = "README.md"
 include = ["/src", "/build.rs", "/istmo.toml", "/native", "/README.md", "/LICENSE*", "/UNLICENSE"]
 keywords = ["istmo", "mobile", "plugin"]
@@ -40,6 +39,8 @@ istmo-build = "{{istmo_version}}"
 pollster = "0.4"
 
 [lints.rust]
+# Toolchains older than clippy 1.100 do not know `unused_async_trait_impl`.
+unknown_lints = { level = "allow", priority = -2 }
 unsafe_code = "forbid"
 missing_debug_implementations = "warn"
 unreachable_pub = "warn"
@@ -50,6 +51,9 @@ nursery  = { level = "warn", priority = -1 }
 module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
+# Plugin traits are async; sync backends implement them with `async fn`
+# rather than hand-built `std::future::ready` futures.
+unused_async_trait_impl = "allow"
 
 [package.metadata.docs.rs]
 all-features = true
