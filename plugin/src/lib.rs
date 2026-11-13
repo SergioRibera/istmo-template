@@ -70,9 +70,16 @@ impl std::error::Error for {{crate_name | pascal_case}}Error {}
 /// `{{crate_name | pascal_case}}Host` (for a Rust implementation, e.g. on
 /// desktop).
 ///
-/// Replace the example methods with your real API. Streams are declared
-/// with `#[istmo::stream]`, cancellable methods take a
-/// `cancel: istmo_core::CancelToken` argument.
+/// Replace the example methods with your real API:
+///
+/// - streams: a non-`async` method marked `#[stream]`
+///   (`istmo_macros::stream`) returning the item type, `T` or
+///   `Result<T, E>` (the first `Err` ends the stream);
+/// - cancellation: an `istmo_core::CancelToken` argument, filled by the
+///   runtime and left off the wire;
+/// - native handles: `#[handle(T)]` on an `istmo_core::NativeHandleId`
+///   field plus `#[owned]` on the method add a `*_owned` client method
+///   that adopts the handle.
 #[plugin(
     name = "{{gh_username}}.{{crate_name}}",
     init = {{crate_name | pascal_case}}Config,
