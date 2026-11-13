@@ -49,7 +49,7 @@ cargo build         # also runs build.rs: Kotlin / Swift glue, istmo doctor
   automatically; built-in `istmo::plugins` clients are listed there.
 - `src/app.rs` holds the shared app state and UI.
 {%- if has_desktop %}
-- `src/main.rs` + `src/desktop.rs` run the same app on a mock runtime;
+- `src/main.rs` + `src/desktop.rs` run the same app on an in-process runtime;
   plugins with a desktop backend run in-process, calls to the others fail
   with a log line until you emulate them.
 {%- endif %}
@@ -116,5 +116,6 @@ just lint
 `cargo test`, plus an MSRV check{% if is_app and has_android %}, an Android APK build{% endif %}{% if is_app and has_ios %}, an iOS simulator build{% endif %}. Release
 workflows fire on `v*` tags.
 {% endif %}{% if ci_gitlab %}
-`.gitlab-ci.yml` mirrors the GitHub pipeline.
+`.gitlab-ci.yml` runs `cargo fmt --check`, `cargo clippy` and
+`cargo test` on the MSRV image{% if is_app and has_android %}, cross-compiles the Android library{% endif %}{% if is_app and has_ios %}, builds the iOS app on a macOS runner{% endif %}{% if bundle_desktop %}, builds the desktop bundle{% endif %}{% if publish_crates %}, and publishes to crates.io on `v*` tags{% endif %}.
 {% endif %}

@@ -17,7 +17,7 @@ The template asks:
 | `ci` | github-actions and/or gitlab-ci |
 | `use_nix_bundle` | `nix-bundle-app` flake output for desktop packaging |
 | `crate_license` | MIT / Apache-2.0 / dual / GPL-3.0 / Unlicense |
-| `istmo_version` | version of every istmo crate and first-party plugin (they share one) |
+| `istmo_version` | one version for every istmo crate, first-party plugin, the Maven runtime + Gradle plugin and the Swift package tag |
 | `ui_framework` | egui scaffold, or a plain shell for freya / slint / dioxus / none |
 
 The pre-hook (`scripts/pre.rhai`) derives the flags the templates use;
@@ -26,14 +26,30 @@ platforms and CI files, then flattens the chosen archetype into the
 project root.
 
 Generated apps use the `io.github.sergioribera.istmo` Gradle plugin and
-`io.github.sergioribera:istmo-runtime` from Maven Central (versioned
-apart from the crates, pinned in `android/`), and the `IstmoRuntime`
-Swift package at the `istmo_version` tag.
+`io.github.sergioribera:istmo-runtime` from Maven Central, and the
+`IstmoRuntime` Swift package, all at `istmo_version` (the Maven
+artefacts are published from the same release tag as the crates).
+
+Plugin crates put their `native/android/` sources in the Kotlin package
+`<bundle_id>.<crate name without underscores>` (`android_package` in
+`istmo.toml`); consuming apps generate the plugin's dispatcher and types
+into that package. A platform left out of `platforms` gets no reference
+backend and no `android_backend` / `ios_backend` entry.
 
 ## Checking the template
 
-Generate into a scratch directory, point the istmo crates at a checkout
-with `[patch.crates-io]` (`istmo`, `istmo-core`, `istmo-macros`,
-`istmo-build`, `istmo-plugins`, `istmo-android`, `istmo-ios`, and the
-plugin crates), then run `cargo clippy --all-targets -- -D warnings`,
-`cargo test` and `cargo fmt --check` in it.
+Generate every variant non-interactively (`cargo generate --path . --name
+my-app --template-values-file values.toml --silent --vcs none`) into a
+scratch directory, point the istmo crates at a checkout with
+`[patch.crates-io]` (`istmo`, `istmo-core`, `istmo-macros`,
+`istmo-build`, `istmo-plugins`, `istmo-plugins-schema`, `istmo-window`,
+`istmo-android`, `istmo-ios`, and the plugin crates), then run
+`cargo clippy --all-targets --all-features -- -D warnings`, `cargo test`
+and `cargo fmt --check` in it.
+
+For a plugin, also build an app that depends on it: its `build.rs`
+writes the plugin's Kotlin into `android/app/src/main/java/<package>/`
+and its Swift into `ios/<App>/Plugins/<Trait>/Generated/`. Compiling
+those with the plugin's `native/` sources and the istmo Kotlin runtime
+(`kotlinc -Werror`) / Swift runtime (`swiftc -warnings-as-errors`, see
+`runtime/ios/ci/` in istmo) checks the native side.
